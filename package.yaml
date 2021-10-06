@@ -1,0 +1,220 @@
+name:                scaffold
+version:             0.0.1
+license:             BSD-3-Clause
+author:              "scaffold"
+maintainer:
+ - "Sergey Yakovlev, home<fclaw007@gmail.com>"
+copyright:           "2020"
+ghc-options:
+  - -threaded
+  - -rtsopts
+  - -O2
+  - -Werror
+  - -fwarn-unused-imports
+  - -Wredundant-constraints
+  - -Wduplicate-exports
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wmissing-fields
+  - -Wmissing-exported-signatures
+  - -Wunused-binds
+  - -Wwrong-do-bind
+  - -Wcpp-undef
+  - -Wunused-do-bind
+  - -Wunused-pattern-binds
+  - -Wtabs
+  - -Wmissing-pattern-synonym-signatures
+  - -fwrite-ide-info
+  - -hiedir=.hie
+
+verbatim:
+  cabal-version: 2.4
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description: Please see the README on GitHub at <https://gitlab.com/edgenode2/server/-/blob/master/README.md>
+
+dependencies:
+- base >= 4.7 && < 5
+# - relude ^>= 0.6.0.0
+# - name: base
+#   mixin:
+#    - hiding (Prelude)
+# - name: relude
+#   mixin:
+#    - (Relude as Prelude
+#      , Relude.Extra.Enum
+#      , Relude.Extra.Validation
+#      , Relude.Unsafe
+#      )
+
+library:
+  dependencies:
+    - tasty
+    - tasty-hspec
+    - tasty-hunit
+    - tasty-html
+    - aeson
+    - lens
+    - lens-aeson
+    - async
+    - lifted-async
+    - monad-control
+    - text
+    - bytestring
+    - containers
+    - template-haskell
+    - yaml
+    - extra
+    - colorful-monoids
+    - hspec
+    - resource-pool
+    - tmp-postgres
+    - directory
+    - filepath
+    - time
+    - pretty-simple == 3.2.1.0
+    - brick
+    - process
+    - random
+    - servant
+    - servant-server
+    - katip
+    - transformers-base
+    - mtl
+    - transformers
+    - servant-server
+    - warp
+    - rotating-log
+    - doctest
+    - doctest-discover
+    - tasty-discover
+    - hasql
+    - hasql-th == 0.4.0.4
+    - exceptions
+    - regex
+    - regex-with-pcre
+    - validation-selective
+    - pretty-tree
+    - rosezipper
+    - servant-swagger-ui
+    - servant-swagger-ui-core
+    - servant-swagger
+    - swagger2
+    - wai-app-static
+    - aeson-injector
+    - servant-auth-server
+    - jose
+    - either
+    - generic-lens
+    - scientific
+    - proto3-suite
+    - proto3-wire
+    - vector
+    - deepseq
+    - QuickCheck
+    - safe-exceptions
+    - wai
+    - casing
+    - lifted-base
+    - data-default-class
+    - postgresql-error-codes
+    - string-interpolate
+    - http-client
+    - http-client-tls
+    - memory
+    - http-types
+    - unordered-containers
+    - pcg-random
+    - utf8-string
+    - wai-cors
+    - either-unwrap
+    - monad-time
+    - tagged
+    - th-printf
+    - resourcet
+    - monad-loops
+    - sort
+    - contravariant-extras
+    - lens-aeson
+    - hashing
+    - strict
+    - optparse-generic
+    - hspec-expectations-lifted
+    - split
+    - minio-hs
+    - network-ip
+    - data-textual
+    - servant-client-core
+    - binary
+    - hashable
+    - text-show
+    - foldl
+    - servant-multipart
+    - servant-rawm
+    - wai-extra
+    - conduit
+    - HList
+    - errors
+    - string-conversions
+    - data-default
+    - elocrypt
+    - tuple-sop
+    - generic-random
+    - generic-deriving
+    - password
+    - ghc-prim
+    - base64-bytestring
+    - generic-arbitrary
+    - servant-mock
+    - insert-ordered-containers
+    - servant-auth-swagger
+    - generics-sop
+    - string-conv
+    - warp-tls
+    - tls
+    - crypto-random
+    - smtp-mail
+    - network
+    - mime-mail
+    - cprng-aes
+    - base64-bytestring
+    - ginger
+    - reflection
+    - cryptonite
+
+  source-dirs:
+    - src/core
+    - src/extended
+    - src/proto
+    - test
+    - app
+
+executables:
+  server:
+    main:                app.hs
+    source-dirs:         prog
+    dependencies:
+    - scaffold
+
+tests:
+  tasty:
+    main:                test.hs
+    source-dirs:         prog
+    dependencies:
+    - scaffold
+  doctest:
+    main:             doctest.hs
+    source-dirs:      prog
+    dependencies:
+    - edgenode
+    - doctest-discover

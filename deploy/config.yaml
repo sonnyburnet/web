@@ -1,0 +1,59 @@
+configDb:
+  dbHost: 172.20.0.7
+  dbPort: 5432
+  dbUser: sonny
+  dbPass: 3190d261d186aeead3a8deec202737c7775af5c8d455a9e5ba958c48b5fd3f59
+  dbDatabase: edgenode
+
+configServerConnection:
+  serverConnectionPort: 12000
+
+configSwagger:
+  swaggerHost: 136.243.173.173
+  swaggerPort: 12000
+
+configHasql:
+  hasqlSettingsPoolN: 50
+  hasqlSettingsTm: 0.5
+  hasqlSettingsResPerStripe: 1
+
+configKatip:
+  katipPath: katip
+  katipSeverity: DebugS
+  katipVerbosity: V3
+  katipEnv: dev
+
+configService:
+  serviceApiKeys:
+   - [recaptcha, 6Lfq078UAAAAAHfSdWpLm9jLqwrZ_goGiyCtj5VG]
+
+configMinio:
+  minioAccessKey: AKIAIOSFODNN7EXAMPLE
+  minioSecretKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  minioBucketPrefix: edgenode
+  minioHost: http://172.20.0.5
+  minioPort: "9000"
+
+# https://api.telegram.org/bot996615482:AAHWG7H1p7lO52ll16erzyGIE7jEJme5TIw/sendMessage?chat_id=@edgenode_server&text=test%20log
+configTelegram:
+  telegramBot: bot996615482:AAHWG7H1p7lO52ll16erzyGIE7jEJme5TIw
+  telegramChat: edgenode_server
+  telegramHost: https://api.telegram.org/
+  telegramEnv: dev
+
+configCors:
+  corsOrigins:
+#     - http://edgenode.org
+#     - http://www.edgenode.org
+#     - http://localhost:3000
+#     - http://localhost:12000
+#     - http://136.243.173.173:12000
+
+configSmtp:
+  smtpServer: smtp.gmail.com
+  smtpLogin: fclaw007
+  smtpPassword: hosvxrxoiuauokae
+  smtpEmail: info@edgenode.org
+  smtpDefaultSubject: Info
+
+configServerError: true

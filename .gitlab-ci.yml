@@ -1,0 +1,80 @@
+image: docker:latest
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:docker
+  IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
+  CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
+  GIT_SUBMODULE_STRATEGY: normal
+  STACK_ROOT: /builds/.stack
+
+stages:
+  - prepare_proto
+  - build_server
+  - deploy_server
+
+services:
+  - docker:dind
+
+proto:
+  stage: prepare_proto
+  #image: haskell
+  image: nixos/nix:2.3.4
+  tags:
+    - edgenode
+  script:
+    - nix-channel --update
+    - nix-env -iA nixpkgs.gitAndTools.gitFull
+    - git submodule update --init
+  cache:
+    paths:
+      - /builds/.stack
+  artifacts:
+    paths:
+      - /builds/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}
+  environment:
+    name: $CI_JOB_NAME
+    url: http://$CI_JOB_NAME
+
+
+server:
+  stage: build_server
+  tags:
+    - edgenode
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  script:
+    - cd /builds/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}
+    - docker build -f Dockerfile_server  -t ${IMAGE_TAG} .
+    - docker tag ${IMAGE_TAG} ${IMAGE_TAG_LATEST}
+    - docker push ${IMAGE_TAG}
+    - docker push ${IMAGE_TAG_LATEST}
+  # after_script:
+    # - echo  "current dir -> $(pwd)"
+    # - echo  "dir content -> $(ls -la)"
+    # - mv test/app.html test/app-`date "+%Y.%m.%d-%H.%M.%S"`.html
+    # - ./scripts/minio_uploader.sh
+  artifacts:
+    paths:
+      - /builds/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}
+  #only:
+  #  - tags
+
+deploy:
+  stage: deploy_server
+  image: nixos/nix:2.3.4
+  tags:
+    - edgenode
+  before_script:
+    - nix-env -iA nixpkgs.docker
+    - nix-env -iA nixpkgs.docker_compose
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  when: manual
+  script:
+    - docker pull $IMAGE_TAG_LATEST
+    - docker-compose down
+    - docker-compose up -d
+  environment:
+    name: Production
+    url: http://136.243.173.173
+  #only:
+  #  - tags

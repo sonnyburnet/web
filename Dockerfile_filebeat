@@ -1,0 +1,8 @@
+FROM elastic/filebeat:7.6.2
+
+COPY /deploy/elk/filebeat.yml /usr/share/filebeat/filebeat.yml
+COPY /deploy/elk/logstash-beats.crt /etc/pki/tls/certs/logstash-beats.crt
+
+CMD ["filebeat", "-e", "-c", "/usr/share/filebeat/filebeat.yml"]
+
+
