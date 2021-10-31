@@ -28,7 +28,7 @@ import qualified Scaffold.Transport.Response as Response
 import Scaffold.Transport.Error
 
 import KatipController
-import Servant.Swagger.KatipController
+import Servant.Swagger.KatipController ()
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Katip
@@ -36,7 +36,7 @@ import qualified Network.Wai.Handler.Warp      as Warp
 import Servant
 import Servant.API.Generic
 import Control.Lens
-import Servant.Swagger.UI
+import Servant.Swagger.UI ()
 import Servant.Auth.Server
 import Control.Concurrent.Async
 import Network.Wai
@@ -113,17 +113,12 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         configNm <-  getKatipNamespace
         return $ Config {..}
   cfg <- initCfg
-  let withSwagger :: Proxy a -> Proxy (a :<|> SwaggerSchemaUI "swagger" "swagger.json")
+  let withSwagger :: Proxy a -> Proxy a
       withSwagger _ = Proxy
-  let context :: Proxy '[ CookieSettings]
+  let context :: Proxy '[CookieSettings]
       context = Proxy
-  let server =
-        hoistServerWithContext
-        (withSwagger api)
-        context
-        (runKatipController cfg (KatipControllerState 0))
-        (toServant Controller.controller :<|>
-        swaggerSchemaUIServerT (swaggerHttpApi cfgHost cfgSwaggerPort ver))
+  let server = hoistServerWithContext (withSwagger api) context (runKatipController cfg (KatipControllerState 0)) (toServant Controller.controller)
+        -- swaggerSchemaUIServerT' (swaggerHttpApi cfgHost cfgSwaggerPort ver))
   excep <-katipAddNamespace (Namespace ["exception"]) askLoggerIO
   ctx_logger <-katipAddNamespace (Namespace ["context"]) askLoggerIO
   req_logger <- katipAddNamespace (Namespace ["request"]) askLoggerIO

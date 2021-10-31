@@ -50,14 +50,14 @@ import Data.Coerce
 getConstructorType (RecC _ [(_, _, ConT c)]) = c
 getConstructorType (NormalC _ [(_, ConT c)]) = c
 getConstructorType _ = error "data not supported"
-  
+
 getConstructorPat (RecC c _) = c
 getConstructorPat (NormalC c _) = c
 getConstructorPat _ = error "data not supported"
 
 
 mkArbitrary :: Name -> Q [Dec]
-mkArbitrary name = 
+mkArbitrary name =
   [d|instance Arbitrary $(conT (mkName (nameBase name))) where
        arbitrary = genericArbitrary
        shrink = genericShrink|]
@@ -70,22 +70,22 @@ mkToSchemaAndJSON name = do
 
 mkToSchemaAndDefJSON :: Name -> Q [Dec]
 mkToSchemaAndDefJSON name = do
-  x <- deriveJSON 
-       (defaultOptions 
-        { tagSingleConstructors = True }) 
+  x <- deriveJSON
+       (defaultOptions
+        { tagSingleConstructors = True })
        name
   y <- deriveToSchemaDef name
   return $ x ++ y
 
-{- 
+{-
    insofar as proto3-suite generates instances for both Aeson and Swagger
    and its appearences are bizarre.
-   for instance let's take a look at this association: UserId { userIdIdent :: Int } -> { userIdIdent: 0} 
-   we no need to hold unnecessary field used as accessor within type. 
+   for instance let's take a look at this association: UserId { userIdIdent :: Int } -> { userIdIdent: 0}
+   we no need to hold unnecessary field used as accessor within type.
    this deriviation solves this issue, at one this alleviates its using on client side
-   drawback: original type is slighty changed, we should add postfix Wrapper for 
+   drawback: original type is slighty changed, we should add postfix Wrapper for
    2 tantamount instances of same type: from proto3-suite and our
- -}  
+ -}
 mkToSchemaAndJSONProtoIdent :: Name -> Q [Dec]
 mkToSchemaAndJSONProtoIdent name =
   do let nameT = conT name
@@ -96,36 +96,36 @@ mkToSchemaAndJSONProtoIdent name =
      let wrapper = mkName $ s <> "Wrapper"
      let unwrap = mkName "unwrap"
      let show = mkName "Show"
-     let entiityWrapper = 
-          NewtypeD [] wrapper [] Nothing 
-          (RecC wrapper 
+     let entiityWrapper =
+          NewtypeD [] wrapper [] Nothing
+          (RecC wrapper
            [(unwrap
-           , Bang NoSourceUnpackedness 
+           , Bang NoSourceUnpackedness
                   NoSourceStrictness
-           , ConT name)]) 
+           , ConT name)])
           [DerivClause (Just StockStrategy) [ConT show]]
-     xs <- [d| 
+     xs <- [d|
         instance ToJSON $(conT wrapper) where
           -- example: Number (Scientific.sc ientific (fromIntegral i) 0)
-          toJSON $(conP wrapper [conP contructor [varP i]]) =  
-            Number (Scientific.scientific (fromIntegral $(varE i)) 0)    
-                            
+          toJSON $(conP wrapper [conP contructor [varP i]]) =
+            Number (Scientific.scientific (fromIntegral $(varE i)) 0)
+
         instance FromJSON $(conT wrapper) where
-          -- withScientific "UserId" $ 
-          -- fmap (fromMaybe err) 
-          -- . traverse (return . UserId) 
+          -- withScientific "UserId" $
+          -- fmap (fromMaybe err)
+          -- . traverse (return . UserId)
           -- . Scientific.toBoundedInteger
           -- where err = error "json parser: userId"
-          parseJSON = 
+          parseJSON =
             withScientific s $
-            fmap (fromMaybe err) 
-            . traverse 
-              ( return 
-              . $(conE wrapper) 
-              . $(conE contructor)) 
+            fmap (fromMaybe err)
+            . traverse
+              ( return
+              . $(conE wrapper)
+              . $(conE contructor))
             . Scientific.toBoundedInteger
             where err = error $ "json parser: " <> s
-          
+
         instance ToSchema $(conT wrapper) where
           -- schema <- declareSchema (Proxy :: Proxy Int)
           -- return $ NamedSchema (Just "UserId") schema
@@ -133,10 +133,10 @@ mkToSchemaAndJSONProtoIdent name =
             schema <- declareSchema (Proxy :: Proxy Int)
             return $ NamedSchema (Just s) schema
       |]
-     return $ entiityWrapper : xs 
+     return $ entiityWrapper : xs
 
 mkSRGEqEnum :: Name -> String -> Q [Dec]
-mkSRGEqEnum name prefix = 
+mkSRGEqEnum name prefix =
   do TyConI (DataD ctx n xs kind ys cl) <- reify name
      let new = mkName $ prefix <> nameBase name
      let geni = DerivClause Nothing [ConT (mkName "Generic")]
@@ -144,45 +144,45 @@ mkSRGEqEnum name prefix =
      let read = DerivClause (Just StockStrategy) [ConT (mkName "Read")]
      let eq = DerivClause (Just StockStrategy) [ConT (mkName "Eq")]
      let enum = DerivClause (Just StockStrategy) [ConT (mkName "Enum")]
-     let capitalizeHead x = x & _head %~ toUpper 
-     let purgeNamePrefix (NormalC n xs) = 
+     let capitalizeHead x = x & _head %~ toUpper
+     let purgeNamePrefix (NormalC n xs) =
           ((`NormalC` xs) . mkName . capitalizeHead . (^.from stext)) `fmap`
-          Data.Text.stripPrefix 
-          (nameBase name^.stext) 
+          Data.Text.stripPrefix
+          (nameBase name^.stext)
           (nameBase n^.stext)
      let err = error $ "error: " <> show name
      let ys' = map (fromMaybe err . purgeNamePrefix) ys
      return [DataD ctx new xs kind ys' ([geni, showi, read, eq, enum] ++ cl)]
 
 mkEnumConvertor :: Name -> Q [Dec]
-mkEnumConvertor name = 
+mkEnumConvertor name =
   do TyConI (DataD _ _ _ _ xs _) <- reify name
      let stripUnderScore = filter (not . (`elem` ("_" :: String))) . nameBase
      let stripPrefix s = fromMaybe s $ s^?stext.to (T.stripPrefix (nameBase name^.stext))._Just.from stext
      let str = mkName "String"
      let err = mkName "error"
      let isoNFrom = mkName ("from" <> stripUnderScore name)
-     let mkClauseFrom (NormalC n _) = 
-          let n' = (quietSnake . stripPrefix . nameBase) n  
+     let mkClauseFrom (NormalC n _) =
+          let n' = (quietSnake . stripPrefix . nameBase) n
           in Clause [ConP n []] (NormalB (LitE (StringL n'))) []
-     let fromSig = SigD isoNFrom (AppT (AppT ArrowT (ConT name)) (ConT str))                
+     let fromSig = SigD isoNFrom (AppT (AppT ArrowT (ConT name)) (ConT str))
      let fromN = FunD isoNFrom (map mkClauseFrom xs)
      let isoNTo = mkName ("to" <> stripUnderScore name)
      let mkClauseTo (NormalC n _) =
           let n' = (quietSnake . stripPrefix . nameBase) n
-          in Clause [LitP (StringL n')] (NormalB (ConE n)) []         
-     let mkErrorClauseTo = 
-          Clause 
-          [WildP] 
-          (NormalB 
-           (AppE (VarE err) 
-            (LitE (StringL ("error in enum converting: " <> 
-             nameBase name))))) []         
-     let toSig = SigD isoNTo (AppT (AppT ArrowT (ConT str)) (ConT name))         
+          in Clause [LitP (StringL n')] (NormalB (ConE n)) []
+     let mkErrorClauseTo =
+          Clause
+          [WildP]
+          (NormalB
+           (AppE (VarE err)
+            (LitE (StringL ("error in enum converting: " <>
+             nameBase name))))) []
+     let toSig = SigD isoNTo (AppT (AppT ArrowT (ConT str)) (ConT name))
      let toN = FunD isoNTo (map mkClauseTo xs ++ [mkErrorClauseTo])
      let isoN = mkName $ "iso" <> stripUnderScore name
      let iso = mkName "Iso'"
-     let isoSig = SigD isoN (AppT (AppT (ConT iso) (ConT name)) (ConT str))  
+     let isoSig = SigD isoN (AppT (AppT (ConT iso) (ConT name)) (ConT str))
      iosDec <- [d| $(varP isoN) = $(appE (appE (varE (mkName "iso")) (varE isoNFrom)) (varE isoNTo)) |]
      return $ [fromSig, fromN, toSig, toN, isoSig] ++ iosDec
 
@@ -192,12 +192,12 @@ mkFromHttpApiDataIdent name = do
   let con = mkName base
   let read = mkName "read"
   [d| instance FromHttpApiData $(conT name) where
-        parseUrlPiece x = 
+        parseUrlPiece x =
           if all isNumber sx then
-            Right $(appE (conE con) 
-                    (appE (varE read) 
-                     (varE (mkName "sx"))))  
-          else Left $ "cannot convert " <> base 
+            Right $(appE (conE con)
+                    (appE (varE read)
+                     (varE (mkName "sx"))))
+          else Left $ "cannot convert " <> base
           where sx = x^.from stext
    |]
 
@@ -212,9 +212,10 @@ mkFromHttpApiDataEnum name iso = do
 
 newtype ParamSchemaEnumCon = ParamSchemaEnumCon Con
 
-instance Lift ParamSchemaEnumCon where 
+instance Lift ParamSchemaEnumCon where
   lift (ParamSchemaEnumCon (NormalC n _)) = pure $ ConE n
   lift _ = error "unsupported constructor"
+  liftTyped = undefined
 
 mkParamSchemaEnum :: Name -> Q Exp-> Q [Dec]
 mkParamSchemaEnum name iso = do
@@ -230,14 +231,14 @@ loadMigrationList =
   do
     dir <- getCurrentDirectory
     let migDir = dir </> "migration"
-    let mkTpl file = 
-         fmap 
-         (, migDir </> file) 
-         (Data.List.stripPrefix 
-          "version" 
-          (dropExtension file))           
+    let mkTpl file =
+         fmap
+         (, migDir </> file)
+         (Data.List.stripPrefix
+          "version"
+          (dropExtension file))
     fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
-    fmap (sortOn (^._1)) $ forM fs $ \x -> do 
+    fmap (sortOn (^._1)) $ forM fs $ \x -> do
       hdl <- openFile (x^._2) ReadMode
       content <- IOS.hGetContents hdl
       hClose hdl
@@ -248,14 +249,14 @@ loadMigrationListTest =
   do
     dir <- getCurrentDirectory
     let migDir = dir </> "migration"
-    let mkTpl file = 
-          fmap 
-          (, migDir </> file) 
-          (Data.List.stripPrefix 
-          "version" 
-          (dropExtension file))           
+    let mkTpl file =
+          fmap
+          (, migDir </> file)
+          (Data.List.stripPrefix
+          "version"
+          (dropExtension file))
     fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
-    fmap (map snd . sortOn (^._1)) $ forM fs $ \x -> do 
+    fmap (map snd . sortOn (^._1)) $ forM fs $ \x -> do
       hdl <- openFile (x^._2) ReadMode
       content <- IOS.hGetContents hdl
       hClose hdl
@@ -265,23 +266,23 @@ mkMigrationSeq :: Q [Dec]
 mkMigrationSeq = do
   migrations <- liftIO loadMigrationList
   let version = mkName "Version"
-  let lastIdx = fst (last migrations) 
+  let lastIdx = fst (last migrations)
   let step = mkName "MigrationStep"
-  let list = mkName "list" 
+  let list = mkName "list"
   let next = mkName "NextSql"
   let stop = mkName "Stop"
-  let mkVersion xs [] = xs ++ [TupE [AppE (ConE version) (LitE (IntegerL lastIdx)), ConE stop]]
-      mkVersion xs ((i, str):is) =
-          TupE [ AppE (ConE version) (LitE (IntegerL (i - 1))) 
-               , AppE (AppE (ConE next) 
-                 (LitE (StringL str))) 
-                 (AppE (ConE version) (LitE (IntegerL i)))]
-          : mkVersion xs is
-  let xs = if null migrations then [] else mkVersion [] migrations
+  -- let mkVersion xs [] = xs ++ [TupE [AppE (ConE version) (LitE (IntegerL lastIdx)), ConE stop]]
+  --     mkVersion xs ((i, str):is) =
+  --         TupE [ AppE (ConE version) (LitE (IntegerL (i - 1)))
+  --              , AppE (AppE (ConE next)
+  --                (LitE (StringL str)))
+  --                (AppE (ConE version) (LitE (IntegerL i)))]
+  --         : mkVersion xs is
+  let xs = if null migrations then [] else undefined [] migrations
   return [ValD (VarP list) (NormalB (ListE xs)) []]
 
 mkMigrationTest :: Q [Dec]
-mkMigrationTest = do 
+mkMigrationTest = do
   xs <- liftIO loadMigrationListTest
   let list = mkName "list"
   let mkSql str = LitE (StringL str)
@@ -293,29 +294,30 @@ mkEncoder :: Name -> Q [Dec]
 mkEncoder name = do
   TyConI (DataD _ _ _ _ c@[(RecC _ xs)] _) <- reify name
   let types = flip map xs $ \(_, _, ty) ->
-        case ty of 
+        case ty of
           ConT t -> mkType t
           AppT (ConT x) (ConT y) -> AppT (ConT x) (mkType y)
           _ -> ty
-  let mkTpl [] tpl = tpl 
-      mkTpl (t:ts) app = mkTpl ts (AppT app t) 
-  let mkTypeSyn = 
-        TySynD (mkName (nameBase name <> "Encoder")) [] 
+  let mkTpl [] tpl = tpl
+      mkTpl (t:ts) app = mkTpl ts (AppT app t)
+  let mkTypeSyn =
+        TySynD (mkName (nameBase name <> "Encoder")) []
                (mkTpl types (TupleT (length xs)))
-  let mkEncoderSig = 
-        SigD (mkName ("mkEncoder" <> nameBase name)) 
-             (AppT (AppT ArrowT (ConT name)) 
+  let mkEncoderSig =
+        SigD (mkName ("mkEncoder" <> nameBase name))
+             (AppT (AppT ArrowT (ConT name))
                     (mkTpl types (TupleT (length xs))))
   let fields = flip map xs $ \(field, _, _) -> VarE (mkName (nameBase field))
   let mkTplExp r [] = r
       mkTplExp r (f:fs) = mkTplExp (r ++ [AppE f (VarE (mkName "x"))]) fs
-  let mkEncoderFun = 
-        FunD (mkName ("mkEncoder" <> nameBase name)) 
-             [Clause [] (NormalB (LamE [VarP (mkName "x")] (TupE (mkTplExp [] fields)))) []]
+  let mkEncoderFun =
+        FunD (mkName ("mkEncoder" <> nameBase name))
+              -- (TupE (mkTplExp [] fields)))
+             [Clause [] (NormalB (LamE [VarP (mkName "x")] (AppE (ConE (mkName "Just")) undefined))) []]
   return [mkTypeSyn, mkEncoderSig, mkEncoderFun]
   where
-    mkType t = 
-      case nameModule t of 
+    mkType t =
+      case nameModule t of
         Just "Data.Text.Internal" -> ConT (mkName ("T." <> (nameBase t)))
         Just "Data.Text.Internal.Lazy" -> ConT (mkName ("LT." <> (nameBase t)))
         Just "Protobuf.Scalar" -> ConT (mkName ("Protobuf." <> (nameBase t)))

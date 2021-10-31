@@ -37,8 +37,6 @@ RUN git clone https://github.com/ImageMagick/ImageMagick.git && \
     ./configure --prefix=/home/nix && make && make install
 
 RUN . /home/nix/.nix-profile/etc/profile.d/nix.sh && \
-      stack install proto3-suite --fast -j12 && \
-      scripts/generate-proto-haskell_python.sh && \
       stack install --fast -j12 --test
 
 ENTRYPOINT ["/home/nix/deploy/init.sh"]

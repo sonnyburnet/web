@@ -56,4 +56,4 @@ swaggerHttpApi hs port ver =
   & info.description ?~ "Scaffold server api"^.stext
   & info.version .~ show ver^.stext
   & info.contact ?~ (Contact Nothing Nothing (Just ("fclaw007@gmail.com"^.stext)))
-  & info.title .~ "Scaffold: global bank for intellectual capital. Tag (" <> $gitTag <> "). Commit (" <> $gitCommit <> ")"
+  & info.title .~ "Scaffold. Tag (" <> $gitTag <> "). Commit (" <> $gitCommit <> ")"

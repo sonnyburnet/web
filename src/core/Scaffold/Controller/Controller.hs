@@ -15,6 +15,7 @@ import qualified Scaffold.Controller.File.Upload as File.Upload
 import qualified Scaffold.Controller.File.Download as File.Download
 import qualified Scaffold.Controller.File.Delete as File.Delete
 import qualified Scaffold.Controller.File.Patch as File.Patch
+import Servant.RawM.Server ()
 
 import Katip
 import KatipController

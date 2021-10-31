@@ -99,7 +99,7 @@ library:
     - doctest-discover
     - tasty-discover
     - hasql
-    - hasql-th == 0.4.0.4
+    - hasql-th
     - exceptions
     - regex
     - regex-with-pcre
@@ -112,13 +112,10 @@ library:
     - swagger2
     - wai-app-static
     - aeson-injector
-    - servant-auth-server
     - jose
     - either
     - generic-lens
     - scientific
-    - proto3-suite
-    - proto3-wire
     - vector
     - deepseq
     - QuickCheck
@@ -161,9 +158,9 @@ library:
     - foldl
     - servant-multipart
     - servant-rawm
+    - servant-rawm-server
     - wai-extra
     - conduit
-    - HList
     - errors
     - string-conversions
     - data-default
@@ -177,7 +174,6 @@ library:
     - generic-arbitrary
     - servant-mock
     - insert-ordered-containers
-    - servant-auth-swagger
     - generics-sop
     - string-conv
     - warp-tls
@@ -191,11 +187,11 @@ library:
     - ginger
     - reflection
     - cryptonite
+    - servant-auth-server
 
   source-dirs:
     - src/core
     - src/extended
-    - src/proto
     - test
     - app
 
@@ -212,9 +208,3 @@ tests:
     source-dirs:         prog
     dependencies:
     - scaffold
-  doctest:
-    main:             doctest.hs
-    source-dirs:      prog
-    dependencies:
-    - edgenode
-    - doctest-discover

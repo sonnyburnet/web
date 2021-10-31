@@ -29,7 +29,7 @@ data File =
 
 instance FromMultipart Tmp Files where
   fromMultipart x =
-    Just $ Files $ flip map (files x) $ \FileData {..} ->
+    Right $ Files $ flip map (files x) $ \FileData {..} ->
       File fdFileName fdFileCType fdPayload
 
 instance FromMultipart Tmp File where
