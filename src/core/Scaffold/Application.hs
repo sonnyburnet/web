@@ -36,7 +36,7 @@ import qualified Network.Wai.Handler.Warp      as Warp
 import Servant
 import Servant.API.Generic
 import Control.Lens
-import Servant.Swagger.UI ()
+import Servant.Swagger.UI
 import Servant.Auth.Server
 import Control.Concurrent.Async
 import Network.Wai
@@ -95,7 +95,7 @@ newtype AppMonad a = AppMonad { runAppMonad :: RWS.RWST KatipEnv KatipLogger Kat
 run :: Cfg -> KatipContextT AppMonad ()
 run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   telegram_service <- fmap (^.telegram) ask
-  let runTelegram l msg = void $ fork $ liftIO $ send telegram_service l ((mkPretty ("At module " <> $location) msg)^.stext)
+  let runTelegram l msg = void $ fork $ liftIO $ send telegram_service l (mkPretty ("At module " <> $location) msg^.stext)
   logger <- katipAddNamespace (Namespace ["application"]) askLoggerIO
 
   version_e <- liftIO getVersion
@@ -113,12 +113,18 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         configNm <-  getKatipNamespace
         return $ Config {..}
   cfg <- initCfg
-  let withSwagger :: Proxy a -> Proxy a
+  let withSwagger :: Proxy a -> Proxy (a :<|> SwaggerSchemaUI "swagger" "swagger.json")
       withSwagger _ = Proxy
   let context :: Proxy '[CookieSettings]
       context = Proxy
-  let server = hoistServerWithContext (withSwagger api) context (runKatipController cfg (KatipControllerState 0)) (toServant Controller.controller)
-        -- swaggerSchemaUIServerT' (swaggerHttpApi cfgHost cfgSwaggerPort ver))
+  let server =
+        hoistServerWithContext
+        (withSwagger api)
+        context
+        (runKatipController cfg (KatipControllerState 0))
+        (toServant Controller.controller :<|>
+         swaggerSchemaUIServerT
+         (swaggerHttpApi cfgHost cfgSwaggerPort ver))
   excep <-katipAddNamespace (Namespace ["exception"]) askLoggerIO
   ctx_logger <-katipAddNamespace (Namespace ["context"]) askLoggerIO
   req_logger <- katipAddNamespace (Namespace ["request"]) askLoggerIO
@@ -126,7 +132,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         Warp.defaultSettings
         & Warp.setPort cfgServerPort
         & Warp.setOnException (logUncaughtException excep runTelegram)
-        & Warp.setOnExceptionResponse (`mk500Response` (coerce cfgServerError))
+        & Warp.setOnExceptionResponse (`mk500Response` coerce cfgServerError)
         & Warp.setServerName ("edgenode api server, revision " <> $gitCommit)
         & Warp.setLogger (logRequest req_logger runTelegram)
   let multipartOpts =
@@ -161,7 +167,7 @@ mk500Response error = bool
    [(H.hContentType, "application/json; charset=utf-8"),
     (hAccessControlAllowOrigin, "*")] $
    encode @(Response.Response ()) $
-   (Response.Error (asError @T.Text (showt error))))
+   Response.Error (asError @T.Text (showt error)))
   (responseLBS status500
    [(H.hContentType, "text/plain; charset=utf-8"),
     (hAccessControlAllowOrigin, "*")] (showt error^.textbsl))

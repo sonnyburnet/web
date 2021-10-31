@@ -25,7 +25,6 @@ import Katip
 import qualified Hasql.Connection as HasqlConn
 import Control.Lens.Iso.Extended
 import Control.Monad
-import Data.Time.Clock (getCurrentTime)
 import Data.Default.Class
 import Control.Monad.RWS.Strict (evalRWST)
 import qualified Network.HTTP.Client.TLS as Http
@@ -45,6 +44,7 @@ import Data.String
 import System.IO
 import qualified Web.Telegram as Web.Telegram
 import Logo
+import Data.Time.Clock.System
 
 data Cmd w =
      Cmd
@@ -97,7 +97,7 @@ main = do
           stdout
           (permitItem (cfg^.katip.severity.from stringify))
           (cfg^.katip.verbosity.from stringify)
-  tm <- getCurrentTime
+  tm <- fmap systemSeconds getSystemTime
   let katipFilePath = cfg^.katip.path <> "/" <> show tm <> ".log"
   fileHdl <- openFile katipFilePath AppendMode
 

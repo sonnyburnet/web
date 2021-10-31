@@ -3,7 +3,7 @@ services:
 
   database:
     image: postgres:latest
-    container_name: "edge-node-server-db"
+    container_name: "scaffold-server-db"
     restart: 'always'
     ports:
       - '5432:5432'
@@ -16,13 +16,10 @@ services:
     volumes:
       - ${PWD}/deploy/db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d/
       - pg_data_db:/var/lib/postgresql/data
-    networks:
-      edgeNode:
-        ipv4_address: ${DB_HOST}
 
   server:
     image: registry.gitlab.com/edgenode2/server:$TAG
-    container_name: "edge-node-server"
+    container_name: "scaffold-server"
     restart: 'always'
     links:
       - database
@@ -30,16 +27,12 @@ services:
     depends_on:
       - database
       - storage
-      - server-logger
     ports:
       - "12000:12000"
-    networks:
-      edgeNode:
-        ipv4_address: ${SERVER_HOST}
 
   storage:
     image: minio/minio:latest
-    container_name: "edge-node-file-storage"
+    container_name: "scaffold-file-storage"
     restart: 'always'
     ports:
       - '9000:9000'
@@ -49,55 +42,8 @@ services:
       MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
       MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
     command: server /data
-    networks:
-      edgeNode:
-        ipv4_address: ${FILE_STORAGE_HOST}
-
-  server-logger:
-    image: sclaw/edgenode-logger:latest
-    container_name: "edge-node-server-logger"
-    restart: 'always'
-    user: root
-    networks:
-      edgeNode:
-        ipv4_address: ${FILEBEAT_HOST}
-    volumes:
-      # - ${PWD}/deploy/elk/filebeat.yml:/usr/share/filebeat/filebeat.yml
-      # - ${PWD}/deploy/elk/logstash-beats.crt:/etc/pki/tls/certs/logstash-beats.crt
-      - filebeat:/usr/share/filebeat/data
-      - /var/lib/docker/containers/:/var/lib/docker/containers/:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: filebeat -e -strict.perms=false
-
-  elk:
-    image: sebp/elk
-    container_name: "edge-node-elk"
-    restart: 'always'
-    depends_on:
-      - server-logger
-    ports:
-      - "5601:5601"
-      - "9200:9200"
-      - "5044:5044"
-    environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - elk-data:/var/lib/elasticsearch
-    networks:
-      edgeNode:
-        ipv4_address: ${ELK_HOST}
-
-networks:
-  edgeNode:
-    driver: bridge
-    ipam:
-     config:
-       - subnet: ${SUB_NET}
 
 volumes:
   pg_data_db: {}
   minio_data: {}
-  filebeat: {}
-  elk-data: {}
-
 # vim: et:sw=2

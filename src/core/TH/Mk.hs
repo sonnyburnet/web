@@ -271,14 +271,14 @@ mkMigrationSeq = do
   let list = mkName "list"
   let next = mkName "NextSql"
   let stop = mkName "Stop"
-  -- let mkVersion xs [] = xs ++ [TupE [AppE (ConE version) (LitE (IntegerL lastIdx)), ConE stop]]
-  --     mkVersion xs ((i, str):is) =
-  --         TupE [ AppE (ConE version) (LitE (IntegerL (i - 1)))
-  --              , AppE (AppE (ConE next)
-  --                (LitE (StringL str)))
-  --                (AppE (ConE version) (LitE (IntegerL i)))]
-  --         : mkVersion xs is
-  let xs = if null migrations then [] else undefined [] migrations
+  let mkVersion xs [] = xs ++ [TupE [Just (AppE (ConE version) (LitE (IntegerL lastIdx))), Just (ConE stop)]]
+      mkVersion xs ((i, str):is) =
+          TupE [Just (AppE (ConE version) (LitE (IntegerL (i - 1))))
+               , Just (AppE (AppE (ConE next)
+                 (LitE (StringL str)))
+                 (AppE (ConE version) (LitE (IntegerL i))))]
+          : mkVersion xs is
+  let xs = if null migrations then [] else mkVersion [] migrations
   return [ValD (VarP list) (NormalB (ListE xs)) []]
 
 mkMigrationTest :: Q [Dec]
@@ -309,16 +309,15 @@ mkEncoder name = do
                     (mkTpl types (TupleT (length xs))))
   let fields = flip map xs $ \(field, _, _) -> VarE (mkName (nameBase field))
   let mkTplExp r [] = r
-      mkTplExp r (f:fs) = mkTplExp (r ++ [AppE f (VarE (mkName "x"))]) fs
+      mkTplExp r (f:fs) = mkTplExp (r ++ [Just (AppE f (VarE (mkName "x")))]) fs
   let mkEncoderFun =
         FunD (mkName ("mkEncoder" <> nameBase name))
-              -- (TupE (mkTplExp [] fields)))
-             [Clause [] (NormalB (LamE [VarP (mkName "x")] (AppE (ConE (mkName "Just")) undefined))) []]
+             [Clause [] (NormalB (LamE [VarP (mkName "x")] (AppE (ConE (mkName "Just")) (TupE (mkTplExp [] fields))))) []]
   return [mkTypeSyn, mkEncoderSig, mkEncoderFun]
   where
     mkType t =
       case nameModule t of
-        Just "Data.Text.Internal" -> ConT (mkName ("T." <> (nameBase t)))
-        Just "Data.Text.Internal.Lazy" -> ConT (mkName ("LT." <> (nameBase t)))
-        Just "Protobuf.Scalar" -> ConT (mkName ("Protobuf." <> (nameBase t)))
+        Just "Data.Text.Internal" -> ConT (mkName ("T." <> nameBase t))
+        Just "Data.Text.Internal.Lazy" -> ConT (mkName ("LT." <> nameBase t))
+        Just "Protobuf.Scalar" -> ConT (mkName ("Protobuf." <> nameBase t))
         _ -> ConT (mkName (nameBase t))

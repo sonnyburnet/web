@@ -1,15 +1,15 @@
 configDb:
-  dbHost: 172.20.0.7
+  dbHost: 127.0.0.1
   dbPort: 5432
   dbUser: sonny
   dbPass: 3190d261d186aeead3a8deec202737c7775af5c8d455a9e5ba958c48b5fd3f59
-  dbDatabase: edgenode
+  dbDatabase: scaffold
 
 configServerConnection:
   serverConnectionPort: 12000
 
 configSwagger:
-  swaggerHost: 136.243.173.173
+  swaggerHost: 127.0.0.1
   swaggerPort: 12000
 
 configHasql:
@@ -30,8 +30,8 @@ configService:
 configMinio:
   minioAccessKey: AKIAIOSFODNN7EXAMPLE
   minioSecretKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  minioBucketPrefix: edgenode
-  minioHost: http://172.20.0.5
+  minioBucketPrefix: scaffold
+  minioHost: http://127.0.0.1
   minioPort: "9000"
 
 # https://api.telegram.org/bot996615482:AAHWG7H1p7lO52ll16erzyGIE7jEJme5TIw/sendMessage?chat_id=@edgenode_server&text=test%20log
