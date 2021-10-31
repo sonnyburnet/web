@@ -26,6 +26,8 @@ import Data.Coerce
 import Data.Either
 import BuildInfo
 import qualified Data.Text as T
+import System.Timeout
+import Data.Foldable
 
 controller :: T.Text -> Files -> KatipController (Response [Id "file"])
 controller bucket x = do
@@ -35,7 +37,7 @@ controller bucket x = do
   es <- for (coerce x) $ \File {..} -> do
     tm <- liftIO getCurrentTime
     let hash = mkHash (fileName <> fileMime <> (show tm^.stext))
-    minioResult <- liftIO $ runMinioWith minioConn $ do
+    minioResult <- liftIO $ timeout (5 * 10 ^ 6) $ runMinioWith minioConn $ do
       let newBucket = minioBucketPrefix <> "." <> bucket
       exist <- bucketExists newBucket
       unless exist $
@@ -49,8 +51,9 @@ controller bucket x = do
           , Name (UnicodeText fileName)
           , Mime (UnicodeText fileMime)
           , bucket)
-    return $ fmap (const tpl) minioResult
+    return $ maybe  (Left (MErrIO (userError "minio server didn't respond"))) (fmap (const tpl)) minioResult
   hasql <- fmap (^.katipEnv.hasqlDbPool) ask
-  let (errorXs, successXs) = partitionEithers es
-  ids <- katipTransaction hasql $ statement File.save successXs
-  return $ Warnings ids (map (asError . (\e -> show e^.stext)) errorXs)
+  let (error_xs, success_xs) = partitionEithers es
+  ids <- katipTransaction hasql $ statement File.save success_xs
+  for_ error_xs $ runTelegram $location
+  return $ Warnings ids (map (asError . (\e -> show e^.stext)) error_xs)

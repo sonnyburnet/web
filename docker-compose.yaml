@@ -1,9 +1,9 @@
 version: '3.7'
 services:
 
-  database:
+  db:
     image: postgres:latest
-    container_name: "scaffold-server-db"
+    container_name: "scaffold-db"
     restart: 'always'
     ports:
       - '5432:5432'
@@ -15,17 +15,17 @@ services:
       - POSTGRES_USER=postgres
     volumes:
       - ${PWD}/deploy/db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d/
-      - pg_data_db:/var/lib/postgresql/data
+      - pg_db:/var/lib/postgresql/data
 
   server:
     image: registry.gitlab.com/edgenode2/server:$TAG
     container_name: "scaffold-server"
     restart: 'always'
     links:
-      - database
+      - db
       - storage
     depends_on:
-      - database
+      - db
       - storage
     ports:
       - "12000:12000"
@@ -44,6 +44,6 @@ services:
     command: server /data
 
 volumes:
-  pg_data_db: {}
+  pg_db: {}
   minio_data: {}
 # vim: et:sw=2
