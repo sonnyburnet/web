@@ -5,6 +5,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Servant.Multipart.File (Files (..), File (..)) where
 
@@ -33,7 +34,7 @@ instance FromMultipart Tmp Files where
       File fdFileName fdFileCType fdPayload
 
 instance FromMultipart Tmp File where
-  fromMultipart x = fmap mkFile $ lookupFile "payloadFile" x
+  fromMultipart x = mkFile <$> lookupFile "payloadFile" x
     where mkFile FileData {..} = File fdFileName fdFileCType fdPayload
 
 instance (Typeable a, HasSwagger sub) => HasSwagger (MultipartForm tag a :> sub) where
@@ -43,7 +44,7 @@ instance (Typeable a, HasSwagger sub) => HasSwagger (MultipartForm tag a :> sub)
     where
       paramFile =
         mempty
-        & Swagger.name .~ ("payload" <> T.pack (show (typeOf (undefined :: a))))
+        & Swagger.name .~ ("payload" <> T.pack (show (typeRep (Proxy @a))))
         & Swagger.required ?~ True
         & Swagger.schema .~
           Swagger.ParamOther

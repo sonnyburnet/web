@@ -67,7 +67,7 @@ controller option id width_m height_m = do
     r <- liftIO $ runMinioWith minioConn $ do
       o <- getObject bucket (x^._1.coerced) defaultGetObjectOptions
       let size = oiSize (gorObjectInfo o)
-      tm <- fmap show $ liftIO getCurrentTime
+      tm <- show <$> liftIO getCurrentTime
       path <- runConduit $
         gorObjectStream o .|
         sinkSystemTempFile
@@ -94,11 +94,11 @@ embedded req resp _ | requestMethod req /= methodGet =
   resp $
   responseLBS status200 [(H.hContentType, "application/json; charset=utf-8")] $
   encode @(Response.Response ()) $
-  (Response.Error (asError @T.Text ("only " <> toS methodGet <> " allowed")))
+  Response.Error (asError @T.Text ("only " <> toS methodGet <> " allowed"))
 embedded _ resp minioResp = resp $
   case minioResp of
     Right minio ->
-      responseLBS status200 [(hContentType, (minio^._4.textbs))] $
+      responseLBS status200 [(hContentType, minio^._4.textbs)] $
         encode (Response.Ok $ decodeUtf8 $ B64.encode (minio^._1))
     Left e -> responseLBS status200 [] $ encode $ (Response.Error e :: Response.Response ())
 
@@ -110,7 +110,7 @@ raw
 raw req resp _ | requestMethod req /= methodGet = resp $ responseLBS status405 [] mempty
 raw _ resp (Right minio) = resp $
   responseLBS status200
-  [ (hContentType, (minio^._4.textbs))
+  [ (hContentType, minio^._4.textbs)
   , (hContentDisposition,
     "attachment;filename=" <>
     (mkHash (minio^._3)^.textbs))] $ (minio^._1.from bytesLazy)

@@ -80,7 +80,7 @@ instance (ToSchema a, Typeable a) => ToSchema (Response a) where
   declareNamedSchema _ = do
     eSchema <- declareSchemaRef (Proxy @Error)
     aSchema <- declareSchemaRef (Proxy @a)
-    let uniq = T.pack $ show (typeOf (undefined :: a))
+    let uniq = T.pack $ show (typeRep (Proxy @a))
     pure $ NamedSchema (Just $ "Response(" <> uniq <> ")") $ mempty
          & type_ ?~ SwaggerObject
          & properties .~ fromList

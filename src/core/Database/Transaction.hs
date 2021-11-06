@@ -98,8 +98,7 @@ instance Exception ViolationError
 -- in this case connection may not be in a clean state.
 transactionViolationError :: Pool Hasql.Connection -> KatipLoggerIO -> ReaderT KatipLoggerIO Session a -> IO (Either ViolationError a)
 transactionViolationError pool logger session =
-  fmap join run >>=
-  either (throwIO . QueryErrorWrapper) pure
+  run >>= either (throwIO . QueryErrorWrapper) pure . join
   where
     run = withResource pool $ \conn ->
       mask $ \release -> do

@@ -6,6 +6,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Scaffold.Api
        ( ApplicationApi (..)
@@ -50,10 +52,10 @@ api = genericApi (Proxy :: Proxy ApplicationApi)
 
 swaggerHttpApi :: String -> Int -> Version -> Swagger
 swaggerHttpApi hs port ver =
-  toSwagger (genericApi (Proxy :: Proxy HttpWrapperApi))
+  toSwagger (genericApi (Proxy @HttpWrapperApi))
   & schemes ?~ [Http, Https]
   & host ?~ Host hs (Just (fromIntegral port))
   & info.description ?~ "Scaffold server api"^.stext
   & info.version .~ show ver^.stext
-  & info.contact ?~ (Contact Nothing Nothing (Just ("fclaw007@gmail.com"^.stext)))
+  & info.contact ?~ Contact Nothing Nothing (Just ("fclaw007@gmail.com"^.stext))
   & info.title .~ "Scaffold. Tag (" <> $gitTag <> "). Commit (" <> $gitCommit <> ")"

@@ -55,4 +55,4 @@ controller id file = do
           $(logTM) ErrorS (logStr (show e))
           throwError undefined
         return Unit
-  fmap fromEither $ for resp patch
+  fromEither <$> for resp patch

@@ -28,7 +28,6 @@ import qualified Scaffold.Transport.Response as Response
 import Scaffold.Transport.Error
 
 import KatipController
-import Servant.Swagger.KatipController ()
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Katip
@@ -115,12 +114,10 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   cfg <- initCfg
   let withSwagger :: Proxy a -> Proxy (a :<|> SwaggerSchemaUI "swagger" "swagger.json")
       withSwagger _ = Proxy
-  let context :: Proxy '[CookieSettings]
-      context = Proxy
   let server =
         hoistServerWithContext
         (withSwagger api)
-        context
+        (Proxy @'[CookieSettings])
         (runKatipController cfg (KatipControllerState 0))
         (toServant Controller.controller :<|>
          swaggerSchemaUIServerT
@@ -133,10 +130,10 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         & Warp.setPort cfgServerPort
         & Warp.setOnException (logUncaughtException excep runTelegram)
         & Warp.setOnExceptionResponse (`mk500Response` coerce cfgServerError)
-        & Warp.setServerName ("edgenode api server, revision " <> $gitCommit)
+        & Warp.setServerName ("scaffold api server, revision " <> $gitCommit)
         & Warp.setLogger (logRequest req_logger runTelegram)
   let multipartOpts =
-        (defaultMultipartOptions (Proxy :: Proxy Tmp))
+        (defaultMultipartOptions (Proxy @Tmp))
         { generalOptions = clearMaxRequestNumFiles defaultParseRequestBodyOptions }
   let mkCtx = defaultCookieSettings :. EmptyContext
   let runServer = serveWithContext (withSwagger api) mkCtx server

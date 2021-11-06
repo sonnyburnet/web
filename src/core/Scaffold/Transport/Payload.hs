@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Scaffold.Transport.Payload (Payload(..), valueToPayload) where
 
@@ -26,7 +27,7 @@ instance ToSchema Payload where
   declareNamedSchema _ =
     pure $
     NamedSchema (Just "Payload") $
-    toSchema (Proxy :: Proxy Object)
+    toSchema (Proxy @Object)
 
 valueToPayload :: Value -> Payload
 valueToPayload (Object o) = Payload o

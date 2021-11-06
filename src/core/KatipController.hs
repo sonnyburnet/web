@@ -161,7 +161,7 @@ runKatipController cfg st app = fmap fst (RWS.evalRWST (unwrap app) cfg st)
 
 runTelegram :: Show a => String -> a -> KatipController ()
 runTelegram location request = do
-  telegram_service <- fmap (^.katipEnv.telegram) ask
+  telegram_service <- asks (^.katipEnv.telegram)
   logger <- askLoggerIO
   void $ fork $ liftIO $ send telegram_service logger $ toS $
     mkPretty ("At module " <> location) ("message: " <> show request)

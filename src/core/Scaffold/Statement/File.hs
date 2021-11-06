@@ -58,7 +58,7 @@ getMeta = dimap (^.coerced) (fmap mkTpl) statement
     mkTpl x = x & _1 %~ coerce & _2 %~ coerce & _3 %~ coerce & _4 %~ coerce
 
 delete :: HS.Statement (Id "file") Bool
-delete = dimap coerce (\x -> x > 0) statement
+delete = dimap coerce (> 0) statement
   where
     statement =
       [rowsAffectedStatement|

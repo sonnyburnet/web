@@ -1,5 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Database.Migration (run) where
 
@@ -64,8 +65,8 @@ roll v =
         if new /= i then
           do statement (setVersion (maybe (New new) (const (Init new)) v)) None
              liftIO $ logger InfoS (logStr ("migration finished at version " <> show ident))
-        else liftIO $ logger InfoS (logStr ("no migration found" :: String))
-      when (isNothing next) $ liftIO $ logger InfoS (logStr ("no migration found" :: String))
+        else liftIO $ logger InfoS (logStr @String "no migration found")
+      when (isNothing next) $ liftIO $ logger InfoS (logStr @String "no migration found")
 
 getVersion :: Hasql.Statement.Statement () (Maybe Word32)
 getVersion = rmap (fmap fromIntegral) [maybeStatement|select (version :: int4) from db_meta|]

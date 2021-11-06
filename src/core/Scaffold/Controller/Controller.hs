@@ -41,11 +41,11 @@ file =
     katipAddNamespace
     (Namespace ["file", "patch"])
     (File.Patch.controller fid file)
-  , _fileApiDelete = \fid ->
-     flip logExceptionM ErrorS $
-     katipAddNamespace
+  , _fileApiDelete =
+      flip logExceptionM ErrorS
+    . katipAddNamespace
      (Namespace ["file", "delete"])
-     (File.Delete.controller fid)
+    . File.Delete.controller
   , _fileApiDownload = \option fid w h ->
      flip logExceptionM ErrorS $
      katipAddNamespace

@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedLabels #-}
 
 module Scaffold.Api.File (FileApi (..)) where
 
@@ -18,6 +19,7 @@ import Servant.Multipart
 import Servant.RawM
 import Data.Aeson.Unit
 import qualified Data.Text as T
+
 
 data FileApi route =
      FileApi

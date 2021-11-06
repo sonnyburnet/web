@@ -56,4 +56,6 @@ controller bucket x = do
   let (error_xs, success_xs) = partitionEithers es
   ids <- katipTransaction hasql $ statement File.save success_xs
   for_ error_xs $ runTelegram $location
-  return $ Warnings ids (map (asError . (\e -> show e^.stext)) error_xs)
+  return $ case ids of
+    [] -> Errors $ map (asError . (\e -> show e^.stext)) error_xs
+    _ -> Warnings ids (map (asError . (\e -> show e^.stext)) error_xs)
