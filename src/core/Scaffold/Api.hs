@@ -13,6 +13,7 @@ module Scaffold.Api
        ( ApplicationApi (..)
        , HttpApi (..)
        , FileApi (..)
+       , AdminApi (..)
      --  , WebsocketApi (..)
        , api
        , swaggerHttpApi
@@ -29,6 +30,7 @@ import Data.Swagger
 import Control.Lens
 import Control.Lens.Iso.Extended
 import Servant.Swagger.RawM ()
+import Servant.Auth.Swagger ()
 
 data ApplicationApi route =
      ApplicationApi

@@ -14,6 +14,7 @@ module App (main) where
 
 import qualified Scaffold.Application as App
 import Scaffold.Config
+import Scaffold.Auth (User (User))
 
 import KatipController
 import BuildInfo (gitCommit)
@@ -42,9 +43,12 @@ import Control.Exception
 import qualified Network.Minio as Minio
 import Data.String
 import System.IO
-import qualified Web.Telegram as Web.Telegram
+import qualified Web.Telegram
 import Logo
 import Data.Time.Clock.System
+import qualified Data.Map as Map
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 data Cmd w =
      Cmd
@@ -58,6 +62,7 @@ data Cmd w =
      , swaggerHost :: w ::: Maybe String <?> "swagger host"
      , swaggerPort :: w ::: Maybe Int <?> "swagger port"
      , serverPort :: w ::: Maybe Int <?> "server port"
+     ,cfgAdminStoragePath :: w ::: FilePath <?> "admin storage"
      } deriving stock Generic
 
 instance ParseRecord (Cmd Wrapped)
@@ -114,6 +119,14 @@ main = do
         env' <- registerScribe "stdout" std defaultScribeSettings init_env
         registerScribe "file" file defaultScribeSettings env'
 
+  admin_storage <- withFile cfgAdminStoragePath ReadMode $ \h -> do
+    content <- T.hGetContents h
+    let xs = flip foldMap (T.splitOn "," content) $ \x ->
+              case T.splitOn ":" x of
+                [pass, email] -> [(pass, User email)]
+                _ -> []
+    return $ Map.fromList xs
+
   let appCfg =
         App.Cfg
         (cfg^.swagger.host.coerced)
@@ -121,6 +134,7 @@ main = do
         (cfg^.serverConnection.port)
         (cfg^.cors)
         (cfg^.serverError)
+        admin_storage
   let runApp le =
         runKatipContextT le (mempty :: LogContexts) mempty $ do
           logger <- katipAddNamespace (Namespace ["db", "migration"]) askLoggerIO

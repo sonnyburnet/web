@@ -3,7 +3,7 @@ configDb:
   dbPort: 5432
   dbUser: sonny
   dbPass: 3190d261d186aeead3a8deec202737c7775af5c8d455a9e5ba958c48b5fd3f59
-  dbDatabase: edgenode
+  dbDatabase: scaffold
 
 configServerConnection:
   serverConnectionPort: 12000
@@ -35,8 +35,8 @@ configMinio:
   minioPort: "9000"
 
 configTelegram:
-  telegramBot:
-  telegramChat:
+  telegramBot: bot2096396660:AAH1XjU72KjSL4tG1Hao7twCPLPMQyHKdDQ
+  telegramChat: sonny_scaffold
   telegramHost: https://api.telegram.org/
   telegramEnv: dev
 

@@ -16,6 +16,7 @@ import qualified Scaffold.Controller.File.Download as File.Download
 import qualified Scaffold.Controller.File.Delete as File.Delete
 import qualified Scaffold.Controller.File.Patch as File.Patch
 import Servant.RawM.Server ()
+import Scaffold.Auth
 
 import Katip
 import KatipController
@@ -26,7 +27,7 @@ controller :: ApplicationApi (AsServerT KatipController)
 controller = ApplicationApi { _applicationApiHttp = toServant httpApi }
 
 httpApi :: HttpApi (AsServerT KatipController)
-httpApi = HttpApi { _httpApiFile = toServant file }
+httpApi = HttpApi { _httpApiFile = toServant file, _httpApiAdmin = (`withBasicAuth` toServant . admin) }
 
 file :: FileApi (AsServerT KatipController)
 file =
@@ -52,3 +53,6 @@ file =
      (Namespace ["file", "download"])
      (File.Download.controller option fid w h)
   }
+
+admin :: User -> AdminApi (AsServerT KatipController)
+admin _ = AdminApi { _adminApiTest = undefined }

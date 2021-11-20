@@ -7,14 +7,18 @@
 
 module Scaffold.Api.Api
        ( HttpApi (..)
-       , module Scaffold.Api.File
+       , module File
+       , module Protected
        ) where
 
-import Scaffold.Api.File
+import Scaffold.Api.File as File
+import Scaffold.Api.Protected as Protected
+import Scaffold.Auth
 
 import Servant.API.Generic
 import Servant.API
 import Servant.Swagger.Tags
+import qualified Servant.Auth.Server as SA
 
 data HttpApi route =
      HttpApi
@@ -23,4 +27,10 @@ data HttpApi route =
        :- Tags "File"
        :> "file"
        :> ToServant FileApi AsApi
+     , _httpApiAdmin
+       :: route
+       :- Tags "Admin"
+       :> SA.Auth '[SA.BasicAuth] User
+       :> "admin"
+       :> ToServant AdminApi AsApi
      } deriving stock Generic

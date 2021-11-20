@@ -67,14 +67,18 @@ import Data.Bool
 import qualified Data.Text as T
 import Data.Aeson
 import Network.HTTP.Types.Header.Extended
+import Crypto.JOSE.JWK
+import Scaffold.Auth (checkBasicAuth, User)
+import qualified Data.Map as M
 
 data Cfg =
      Cfg
-     { cfgHost         :: !String
-     , cfgSwaggerPort  :: !Int
-     , cfgServerPort   :: !Int
+     { cfgHost          :: !String
+     , cfgSwaggerPort   :: !Int
+     , cfgServerPort    :: !Int
      , cfgCors          :: !Cfg.Cors
      , cfgServerError   :: !Cfg.ServerError
+     , cfgAdminStorage  :: !(M.Map T.Text User)
      }
 
 newtype AppMonad a = AppMonad { runAppMonad :: RWS.RWST KatipEnv KatipLogger KatipState IO a }
@@ -117,7 +121,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   let server =
         hoistServerWithContext
         (withSwagger api)
-        (Proxy @'[CookieSettings])
+        (Proxy @'[JWTSettings, CookieSettings, BasicAuthData -> IO (AuthResult User)])
         (runKatipController cfg (KatipControllerState 0))
         (toServant Controller.controller :<|>
          swaggerSchemaUIServerT
@@ -125,6 +129,10 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   excep <-katipAddNamespace (Namespace ["exception"]) askLoggerIO
   ctx_logger <-katipAddNamespace (Namespace ["context"]) askLoggerIO
   req_logger <- katipAddNamespace (Namespace ["request"]) askLoggerIO
+  basic_auth <- katipAddNamespace (Namespace ["auth", "basic"]) askLoggerWithLocIO
+
+  jwk <- liftIO $ genJWK (RSAGenParam (4096 `div` 8))
+
   let settings =
         Warp.defaultSettings
         & Warp.setPort cfgServerPort
@@ -135,7 +143,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   let multipartOpts =
         (defaultMultipartOptions (Proxy @Tmp))
         { generalOptions = clearMaxRequestNumFiles defaultParseRequestBodyOptions }
-  let mkCtx = defaultCookieSettings :. EmptyContext
+  let mkCtx = defaultJWTSettings jwk :. defaultCookieSettings :. checkBasicAuth basic_auth cfgAdminStorage :. EmptyContext
   let runServer = serveWithContext (withSwagger api) mkCtx server
   mware_logger <- katipAddNamespace (Namespace ["middleware"]) askLoggerIO
 
@@ -181,3 +189,9 @@ mkCors cfg_cors =
     & field @"corsOrigins" .~ fmap ((, True) . map toS) (Cfg.corsOrigins cfg_cors)
     & field @"corsRequestHeaders" .~ [hAuthorization, hContentType, hOrigin, hAccessControlAllowOrigin]
     & field @"corsMethods" .~ simpleMethods <> [methodPut, methodPatch, methodDelete, methodOptions]
+
+askLoggerWithLocIO = do
+  ctx <- getKatipContext
+  ns <- getKatipNamespace
+  logEnv <- getLogEnv
+  pure (\loc sev msg -> runKatipT logEnv $ logItem ctx ns loc sev msg)

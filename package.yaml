@@ -44,7 +44,7 @@ extra-source-files:
 description: Please see the README on GitHub at <https://gitlab.com/edgenode2/server/-/blob/master/README.md>
 
 dependencies:
-- base >= 4.7 && < 5
+    - base >= 4.7 && < 5
 # - relude ^>= 0.6.0.0
 # - name: base
 #   mixin:
@@ -188,11 +188,11 @@ library:
     - reflection
     - cryptonite
     - servant-auth-server
+    - servant-auth-swagger
 
   source-dirs:
     - src/core
     - src/extended
-    - test
     - app
 
 executables:
@@ -205,6 +205,19 @@ executables:
 tests:
   tasty:
     main:                test.hs
-    source-dirs:         prog
+    source-dirs:
+       - prog
+       - test
     dependencies:
     - scaffold
+    - servant
+    - hspec
+    - servant-swagger
+    - generic-lens
+    - lens
+    - hspec-expectations-lifted
+    - QuickCheck
+    - hasql
+    - tasty
+    - tasty-hspec
+    - tasty-html

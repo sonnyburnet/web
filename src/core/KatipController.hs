@@ -18,6 +18,7 @@ module KatipController
        , KatipLogger (..)
        , KatipState (..)
        , KatipLoggerIO
+       , KatipLoggerLocIO
        , KatipControllerState (..)
        , Minio (..)
          -- * lens
@@ -68,12 +69,14 @@ import Control.Monad.RWS.Class
 import qualified Network.Minio as Minio
 import qualified Data.Text as T
 import qualified Hasql.Connection as Hasql
-import Web.Telegram as Web.Telegram
+import Web.Telegram
 import Pretty
 import Data.String.Conv
 import Control.Concurrent.Lifted
+import Language.Haskell.TH.Syntax
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
+type KatipLoggerLocIO = Maybe Loc -> Severity -> LogStr -> IO ()
 
 data KatipEnv =
      KatipEnv
