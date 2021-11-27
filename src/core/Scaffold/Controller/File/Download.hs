@@ -10,7 +10,7 @@ module Scaffold.Controller.File.Download (controller, Option) where
 
 import Scaffold.Transport.Id
 import Scaffold.Statement.File as File
-import Scaffold.Model.File
+import Scaffold.Transport.Model.File
 import Scaffold.Transport.Error
 import qualified Scaffold.Transport.Response as Response
 

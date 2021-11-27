@@ -1,7 +1,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Scaffold.Model.File (Hash (..), Name (..), Mime (..), UnicodeText (..), Bucket (..)) where
+module Scaffold.Transport.Model.File (Hash (..), Name (..), Mime (..), UnicodeText (..), Bucket (..)) where
 
 import Test.QuickCheck.Extended
 import Database.Transaction

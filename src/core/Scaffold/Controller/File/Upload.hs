@@ -8,7 +8,7 @@ module Scaffold.Controller.File.Upload (controller) where
 import Scaffold.Transport.Response
 import Scaffold.Statement.File as File
 import Scaffold.Transport.Id
-import Scaffold.Model.File
+import Scaffold.Transport.Model.File
 
 import Servant.Multipart.File
 import KatipController

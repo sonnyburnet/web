@@ -150,14 +150,14 @@ makeFields ''Minio
 
 -- These instances get even easier with lenses!
 instance Katip KatipController where
-    getLogEnv = KatipController $ asks configEnv
-    localLogEnv f (KatipController m) = KatipController (local (over env f) m)
+  getLogEnv = KatipController $ asks configEnv
+  localLogEnv f (KatipController m) = KatipController (local (over env f) m)
 
 instance KatipContext KatipController where
-    getKatipContext = KatipController $ asks configCtx
-    localKatipContext f (KatipController m) = KatipController (local (over ctx f) m)
-    getKatipNamespace = KatipController $ asks configNm
-    localKatipNamespace f (KatipController m) = KatipController (local (over nm f) m)
+  getKatipContext = KatipController $ asks configCtx
+  localKatipContext f (KatipController m) = KatipController (local (over ctx f) m)
+  getKatipNamespace = KatipController $ asks configNm
+  localKatipNamespace f (KatipController m) = KatipController (local (over nm f) m)
 
 runKatipController :: Config -> KatipControllerState -> KatipController a -> Handler a
 runKatipController cfg st app = fmap fst (RWS.evalRWST (unwrap app) cfg st)

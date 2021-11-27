@@ -18,7 +18,7 @@ services:
       - pg_db:/var/lib/postgresql/data
 
   server:
-    image: registry.gitlab.com/edgenode2/server:$TAG
+    image: server:latest
     container_name: "scaffold-server"
     restart: 'always'
     links:

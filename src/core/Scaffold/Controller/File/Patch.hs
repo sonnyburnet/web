@@ -10,7 +10,7 @@ module Scaffold.Controller.File.Patch (controller) where
 import Scaffold.Transport.Response
 import Scaffold.Transport.Id
 import Scaffold.Statement.File as File
-import Scaffold.Model.File
+import Scaffold.Transport.Model.File
 
 import KatipController
 import Data.Aeson.Unit

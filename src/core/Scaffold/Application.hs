@@ -70,6 +70,7 @@ import Network.HTTP.Types.Header.Extended
 import Crypto.JOSE.JWK
 import Scaffold.Auth (checkBasicAuth, User)
 import qualified Data.Map as M
+import Language.Haskell.TH.Syntax (Loc)
 
 data Cfg =
      Cfg
@@ -145,7 +146,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         { generalOptions = clearMaxRequestNumFiles defaultParseRequestBodyOptions }
   let mkCtx = defaultJWTSettings jwk :. defaultCookieSettings :. checkBasicAuth basic_auth cfgAdminStorage :. EmptyContext
   let runServer = serveWithContext (withSwagger api) mkCtx server
-  mware_logger <- katipAddNamespace (Namespace ["middleware"]) askLoggerIO
+  mware_logger <- katipAddNamespace (Namespace ["middleware"]) askLoggerWithLocIO
 
   path <- liftIO getCurrentDirectory
   let tls_settings = (Warp.tlsSettings (path </> "tls/certificate") (path </> "tls/key")) { Warp.onInsecure = Warp.AllowInsecure }
@@ -154,8 +155,8 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   mail_logger <- katipAddNamespace (Namespace ["mail"]) askLoggerIO
   liftIO (void (waitAnyCancel [servAsync])) `logExceptionM` ErrorS
 
-middleware :: Cfg.Cors -> KatipLoggerIO -> Application -> Application
-middleware cors log app = mkCors cors $ Middleware.logger log app
+middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
+middleware cors log app = mkCors cors $ Middleware.logger log $ Middleware.showVault log app
 
 logUncaughtException :: KatipLoggerIO -> (KatipLoggerIO -> String -> IO ()) -> Maybe Request -> SomeException -> IO ()
 logUncaughtException log runTelegram req e = when (Warp.defaultShouldDisplayException e) $ maybe without within req
@@ -190,8 +191,11 @@ mkCors cfg_cors =
     & field @"corsRequestHeaders" .~ [hAuthorization, hContentType, hOrigin, hAccessControlAllowOrigin]
     & field @"corsMethods" .~ simpleMethods <> [methodPut, methodPatch, methodDelete, methodOptions]
 
+askLoggerWithLocIO :: KatipContextT AppMonad (Maybe Loc -> Severity -> LogStr -> IO ())
 askLoggerWithLocIO = do
   ctx <- getKatipContext
   ns <- getKatipNamespace
   logEnv <- getLogEnv
-  pure (\loc sev msg -> runKatipT logEnv $ logItem ctx ns loc sev msg)
+  pure $ \loc sev msg ->
+    runKatipT logEnv $
+    logItem ctx ns loc sev msg

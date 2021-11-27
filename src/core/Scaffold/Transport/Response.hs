@@ -39,7 +39,7 @@ import Test.QuickCheck.Extended
 --  Generic response for sirius services.
 data Response a
   = Response
-  { responseResult :: (Maybe a)
+  { responseResult :: Maybe a
     -- ^ Computation result.
   , responseWarnings :: [Error]
   , responseErrors :: [Error]
@@ -63,7 +63,7 @@ instance ToJSON a => ToJSON (Response a) where
   toJSON (Response Nothing [] []) = object ["success" .= Null]
   toJSON (Response Nothing ys xs) = object
     $ (if null ys then id else (("warning".=ys):))
-      (if null xs then [] else ["error".=xs])
+      (["error".=xs | not (null xs)])
   toJSON (Response (Just x) ys xs) = object
     $ (if null ys then id else (("warning".=ys):))
     . (if null xs then id else (("error".=xs):))
@@ -86,8 +86,7 @@ instance (ToSchema a, Typeable a) => ToSchema (Response a) where
          & properties .~ fromList
              [ ("success", aSchema)
              , ("warnings", eSchema)
-             , ("error", eSchema)
-             ]
+             , ("error", eSchema) ]
 
 instance Arbitrary a => Arbitrary (Response a) where arbitrary = fmap (\x -> Response x [] []) arbitrary
 

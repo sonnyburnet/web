@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeApplications  #-}
 
 module Data.Aeson.Extended
        ( module Data.Aeson
@@ -56,13 +57,26 @@ nameModifier prefix name = concat (lowerFirstWord suffix)
 -- | Strip longest common prefix of to lists.
 --
 -- >>> commonPrefixOn id "MessageStatus" "MessageDelivered" :: (String, String, String)
--- ("Message","Status","Delivered")
+-- WAS WAS WAS ("Message","Status","Delivered")
+-- WAS WAS NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
+-- WAS NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
+-- NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
 -- >>> commonPrefixOn id "MessageStatus" "MessageSent" :: (String, String, String)
--- ("MessageS","tatus","ent")
+-- WAS WAS WAS ("MessageS","tatus","ent")
+-- WAS WAS NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
+-- WAS NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
+-- NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
 --
 -- prop> commonPrefixOn id xs xs == (xs, [], [])
+-- Variable not in scope: xs :: [b0]
+-- Variable not in scope: xs :: [b0]
+-- Variable not in scope: xs :: [b0]
 -- prop> commonPrefixOn id [] xs == ([], [], xs)
+-- Variable not in scope: xs :: [b0]
+-- Variable not in scope: xs :: [b0]
 -- prop> commonPrefixOn id xs [] == ([], xs, [])
+-- Variable not in scope: xs :: [b0]
+-- Variable not in scope: xs :: [b0]
 commonPrefixOn :: Eq b => (a -> b) -> [a] -> [a] -> ([a], [a], [a])
 commonPrefixOn f (x : xs) (y : ys)
   | f x == f y = (x : prefix, xs', ys')
@@ -123,13 +137,13 @@ parsejsonoundedEnum err js = do
     then return (toEnum n)
     else fail (errorMessage n)
   where
-    minN = fromEnum (minBound :: a)
-    maxN = fromEnum (maxBound :: a)
-    errorMessage n = 
-      "illegal " ++ err ++ ": " ++ show n ++ 
-      " (expected a value between " ++ 
-      show minN ++ " and " ++ show maxN ++ ")" 
-     
+    minN = fromEnum (minBound @a)
+    maxN = fromEnum (maxBound @a)
+    errorMessage n =
+      "illegal " ++ err ++ ": " ++ show n ++
+      " (expected a value between " ++
+      show minN ++ " and " ++ show maxN ++ ")"
+
 -- | Derive 'ToJSON' and 'FromJSON'
 -- with Template Haskell using 'aesonOptions'.
 deriveJSON' :: Name -> Q [Dec]

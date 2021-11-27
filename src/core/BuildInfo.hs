@@ -36,4 +36,4 @@ instance FromJSON Version where
   parseJSON = withObject "Version" $ \o -> fmap (coerce @T.Text @Version . fromMaybe "-") $ o .:? "version"
 
 getVersion ::  IO (Either String Version)
-getVersion = fmap (first prettyPrintParseException) $ decodeFileEither @Version "package.yaml"
+getVersion = first prettyPrintParseException <$> decodeFileEither @Version "package.yaml"

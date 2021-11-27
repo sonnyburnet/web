@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Servant.Ip (HeaderIP, module Network.IP.Addr) where
 
@@ -27,25 +28,26 @@ data HeaderIP deriving Typeable
 instance (HasServer api context) => HasServer (HeaderIP :> api) context where
   type ServerT (HeaderIP :> api) m = Maybe IP4 -> ServerT api m
 
-  hoistServerWithContext _ pc nt s = hoistServerWithContext (Proxy:: Proxy api) pc nt . s
+  hoistServerWithContext _ pc nt s = hoistServerWithContext (Proxy @api) pc nt . s
 
-  route Proxy context subserver = route (Proxy :: Proxy api) context $
-      subserver `addHeaderCheck` withRequest headerCheck
+  route Proxy context subserver =
+    route (Proxy @api) context $
+    subserver `addHeaderCheck` withRequest headerCheck
     where
       headerCheck :: Request -> DelayedIO (Maybe IP4)
       headerCheck req =
-        pure $ ((maybeParsed . parseAscii) =<<
-          (getFirst (mconcat
+        pure $ (maybeParsed . parseAscii =<<
+          getFirst (mconcat
             [ First $ y `lookup` requestHeaders req
               | y <- ["x-real-ip", "x-forward-for"]
-            ]))) <|> (getRemoteAddress (remoteHost req))
+            ])) <|> getRemoteAddress (remoteHost req)
       getRemoteAddress (SockAddrInet _ addr) = Just $ IP4 addr
       getRemoteAddress _ = Nothing
 
 instance (HasSwagger api) => HasSwagger (HeaderIP :> api) where
-  toSwagger _ = toSwagger (Proxy :: Proxy api)
+  toSwagger _ = toSwagger (Proxy @api)
 
 instance HasClient m api => HasClient m (HeaderIP :> api) where
   type Client m (HeaderIP :> api) = Client m api
-  clientWithRoute pm Proxy = clientWithRoute pm (Proxy :: Proxy api)
-  hoistClientMonad pm _ = hoistClientMonad pm (Proxy :: Proxy api)
+  clientWithRoute pm Proxy = clientWithRoute pm (Proxy @api)
+  hoistClientMonad pm _ = hoistClientMonad pm (Proxy @api)

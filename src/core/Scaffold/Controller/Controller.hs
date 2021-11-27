@@ -6,6 +6,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Scaffold.Controller.Controller (controller) where
 
@@ -17,17 +18,25 @@ import qualified Scaffold.Controller.File.Delete as File.Delete
 import qualified Scaffold.Controller.File.Patch as File.Patch
 import Servant.RawM.Server ()
 import Scaffold.Auth
+import Scaffold.Transport.Response
 
 import Katip
 import KatipController
 import Servant.Server.Generic
 import Servant.API.Generic
+import Servant.Ip
+import Control.Monad.Time
 
 controller :: ApplicationApi (AsServerT KatipController)
-controller = ApplicationApi { _applicationApiHttp = toServant httpApi }
+controller = ApplicationApi { _applicationApiHttp = toServant . httpApi }
 
-httpApi :: HttpApi (AsServerT KatipController)
-httpApi = HttpApi { _httpApiFile = toServant file, _httpApiAdmin = (`withBasicAuth` toServant . admin) }
+httpApi :: Maybe IP4 -> HttpApi (AsServerT KatipController)
+httpApi _ =
+  HttpApi {
+    _httpApiFile =
+    toServant file
+  , _httpApiAdmin =
+    (`withBasicAuth` toServant . admin) }
 
 file :: FileApi (AsServerT KatipController)
 file =
@@ -51,8 +60,7 @@ file =
      flip logExceptionM ErrorS $
      katipAddNamespace
      (Namespace ["file", "download"])
-     (File.Download.controller option fid w h)
-  }
+     (File.Download.controller option fid w h) }
 
 admin :: User -> AdminApi (AsServerT KatipController)
-admin _ = AdminApi { _adminApiTest = undefined }
+admin _ = AdminApi { _adminApiTest = Ok <$> currentTime }

@@ -8,15 +8,15 @@
 
 module Scaffold.Api.Protected (AdminApi (..)) where
 
-import Scaffold.Transport.Response ( Response )
-
 import Servant.API.Generic ( Generic, GenericMode(type (:-)) )
-import Servant.API.Extended ( JSON, Get, type (:>) )
+import Servant.API.Extended ( Get, type (:>), JSON )
+import Scaffold.Transport.Response ( Response )
+import Data.Time (UTCTime)
 
 newtype AdminApi route =
         AdminApi {
           _adminApiTest
           :: route
           :- "test"
-          :> Get '[JSON] (Response ())
+          :> Get '[JSON] (Response UTCTime)
         } deriving stock Generic

@@ -32,11 +32,11 @@ import Servant.API
 
 instance ToParamSchema a => ToParamSchema (OnlyField s a)
 
-instance FromHttpApiData a => FromHttpApiData (OnlyField s a) where 
-  parseUrlPiece = fmap OnlyField . parseUrlPiece 
+instance FromHttpApiData a => FromHttpApiData (OnlyField s a) where
+  parseUrlPiece = fmap OnlyField . parseUrlPiece
 
-instance (ParamsShow a, ParamsShow b) => 
-         ParamsShow (WithField s a b) 
+instance (ParamsShow a, ParamsShow b) =>
+         ParamsShow (WithField s a b)
   where
     render (WithField x y) = render x ++ render y
 
@@ -48,7 +48,7 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (WithField s a b) where
 
 instance (Arbitrary a) => Arbitrary (OnlyField s a) where
   arbitrary = OnlyField <$> arbitrary
- 
+
 newtype OptField s a v = OptField (WithField s (Maybe a) v)
   deriving Generic
   deriving newtype ToJSON
@@ -71,7 +71,7 @@ newtype Or a b = Or (Either a b)
   deriving newtype Arbitrary
   deriving anyclass ToSchema
   deriving stock Eq
-  
+
 instance (FromJSON a, FromJSON b) => FromJSON (Or a b) where
   parseJSON x = Or <$> asum [Left <$> parseJSON x, Right <$> parseJSON x]
 

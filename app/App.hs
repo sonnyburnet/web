@@ -62,7 +62,8 @@ data Cmd w =
      , swaggerHost :: w ::: Maybe String <?> "swagger host"
      , swaggerPort :: w ::: Maybe Int <?> "swagger port"
      , serverPort :: w ::: Maybe Int <?> "server port"
-     ,cfgAdminStoragePath :: w ::: FilePath <?> "admin storage"
+     , cfgAdminStoragePath :: w ::: FilePath <?> "admin storage"
+     , migration :: w ::: FilePath <?> "migration path"
      } deriving stock Generic
 
 instance ParseRecord (Cmd Wrapped)
@@ -138,7 +139,7 @@ main = do
   let runApp le =
         runKatipContextT le (mempty :: LogContexts) mempty $ do
           logger <- katipAddNamespace (Namespace ["db", "migration"]) askLoggerIO
-          liftIO $ Migration.run hasqlpool logger
+          liftIO $ Migration.run migration logger (50, 1, mkRawConn (cfg^.db))
           App.run appCfg
   manager <- Http.newTlsManagerWith Http.tlsManagerSettings
     { managerConnCount = 1

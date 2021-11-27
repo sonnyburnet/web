@@ -60,6 +60,7 @@ extra-deps:
   - headed-megaparsec-0.2.0.1
   - postgresql-syntax-0.4@sha256:df8b65a33f4088eddad25cedbec814e5f34f8e8ae55065139b73bd6da0d66f21,4176
   - servant-rawm-server-1.0.0.1@sha256:bdbc14572a3ca58a8468b1ea1ccb160d77aa56702007c19b55e01e0a4a87ef11,1869
+  - hasql-migration-0.3.0@sha256:6ca4cc6c89834bb79eb9f15b504774043b5b3994336bd86a9d79e59da6d54963,2799
 
 
 # - acme-missiles-0.3
