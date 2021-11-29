@@ -16,6 +16,9 @@ services:
     volumes:
       - ${PWD}/deploy/db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d/
       - pg_db:/var/lib/postgresql/data
+    networks:
+      edgeNode:
+        ipv4_address: 192.168.20.4
 
   server:
     image: server:latest
@@ -29,6 +32,9 @@ services:
       - storage
     ports:
       - "12000:12000"
+    networks:
+      edgeNode:
+        ipv4_address: 192.168.20.3
 
   storage:
     image: minio/minio:latest
@@ -42,8 +48,34 @@ services:
       MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
       MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
     command: server /data
+    networks:
+      edgeNode:
+        ipv4_address: 192.168.20.2
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: "scaffold-pgadmin"
+    restart: 'always'
+    ports:
+      - '82:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@domain.com
+      PGADMIN_DEFAULT_PASSWORD: SuperSecret
+      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 10
+    networks:
+      edgeNode:
+        ipv4_address: 192.168.20.6
 
 volumes:
   pg_db: {}
   minio_data: {}
+
+networks:
+  edgeNode:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 192.168.20.0/25
+
+
 # vim: et:sw=2

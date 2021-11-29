@@ -5,4 +5,4 @@ cd /home/nix/
 
 sleep 2
 echo 'launch server..'
-./bin/server --cfgPath deploy/config.yaml --pathToKatip deploy --pathToJwk deploy +RTS -N -AL32m -n4m -A32m -qb0 -I0 -T -s
+./bin/server --cfg_path deploy/config.yaml --path_to_katip deploy --path_to_jwk deploy --cfg_admin_storage_path deploy/admin_storage --migration ./migration

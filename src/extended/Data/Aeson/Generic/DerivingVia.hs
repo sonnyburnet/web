@@ -1,3 +1,32 @@
+{-
+data MyConfig = MyConfig { mcNameOfProcess :: String
+                         , mcArgsToProcess :: [String]
+                         }
+  deriving (Read, Show, Eq, Ord, Generic)
+  deriving (ToJSON, FromJSON)
+       via WithOptions '[ FieldLabelModifier     '[CamelTo2 "_" , Drop 2]
+                        , ConstructorTagModifier '[CamelTo2 "_"]
+                        ]
+                        MyConfig
+
+data Init
+instance Reifies Init (String -> String) where
+  reflect _ = init
+
+data OtherConfig = OtherConfig { otrNameOfProcess :: Maybe String
+                               , otrArgsToProcess :: [String]
+                               }
+  deriving (Read, Show, Eq, Ord, Generic)
+  deriving (ToJSON, FromJSON)
+       via WithOptions '[ FieldLabelModifier     '[CamelTo2 "-"]
+                        , ConstructorTagModifier '[CamelTo2 "-", UserDefined Init]
+                        , SumEnc                  TwoElemArr
+                        , TagSingleConstructors  'True
+                        , OmitNothingFields      'True
+                        ]
+                        OtherConfig
+-}
+
 {-# LANGUAGE ConstraintKinds, DataKinds, DeriveGeneric, DerivingVia    #-}
 {-# LANGUAGE ExplicitNamespaces, FlexibleContexts, FlexibleInstances   #-}
 {-# LANGUAGE GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses  #-}
@@ -19,18 +48,24 @@ module Data.Aeson.Generic.DerivingVia
      , type TagSingleConstructors
      )
   where
-import           Data.Aeson      (FromJSON (..), GFromJSON, GToJSON,
-                                  ToJSON (..))
-import           Data.Aeson      (Options (..), Zero, camelTo2,
-                                  genericParseJSON)
-import           Data.Aeson      (defaultOptions, genericToJSON)
+import Data.Aeson
+    ( FromJSON(..),
+      GFromJSON,
+      GToJSON,
+      ToJSON(..),
+      Options(..),
+      Zero,
+      camelTo2,
+      genericParseJSON,
+      defaultOptions,
+      genericToJSON )
 import qualified Data.Aeson      as Aeson
 import           Data.Kind       (Constraint, Type)
 import           Data.Proxy      (Proxy (..))
 import           Data.Reflection (Reifies (..))
 import           GHC.Generics    (Generic, Rep)
-import           GHC.TypeLits    (KnownNat, KnownSymbol, natVal, symbolVal)
-import           GHC.TypeLits    (Nat, Symbol)
+import GHC.TypeLits
+    ( KnownNat, KnownSymbol, natVal, symbolVal, Nat, Symbol )
 
 newtype WithOptions options a = WithOptions { runWithOptions :: a }
 
@@ -143,7 +178,7 @@ instance (Demotable (x :: k), Demotable (xs :: [k])) => Demotable (x ': xs) wher
 type DefaultOptions = ('[] :: [Setting])
 
 reflectOptions :: forall xs proxy. Demotable (xs :: [Setting]) => proxy xs -> Options
-reflectOptions pxy = foldr (.) id (demote pxy) defaultOptions
+reflectOptions pxy = foldr ($) defaultOptions (demote pxy)
 
 instance (Demotable (options :: [Setting])) => Reifies options Options where
   reflect = reflectOptions
@@ -155,34 +190,3 @@ instance (Generic a, GToJSON Zero (Rep a), Reifies (options :: k) Options)
 instance (Generic a, GFromJSON Zero (Rep a), Reifies (options :: k) Options)
        => FromJSON (WithOptions options a) where
   parseJSON = fmap WithOptions . genericParseJSON (reflect (Proxy @options))
-
-
-{-
-data MyConfig = MyConfig { mcNameOfProcess :: String
-                         , mcArgsToProcess :: [String]
-                         }
-  deriving (Read, Show, Eq, Ord, Generic)
-  deriving (ToJSON, FromJSON)
-       via WithOptions '[ FieldLabelModifier     '[CamelTo2 "_" , Drop 2]
-                        , ConstructorTagModifier '[CamelTo2 "_"]
-                        ]
-                        MyConfig
-
-data Init
-instance Reifies Init (String -> String) where
-  reflect _ = init
-
-data OtherConfig = OtherConfig { otrNameOfProcess :: Maybe String
-                               , otrArgsToProcess :: [String]
-                               }
-  deriving (Read, Show, Eq, Ord, Generic)
-  deriving (ToJSON, FromJSON)
-       via WithOptions '[ FieldLabelModifier     '[CamelTo2 "-"]
-                        , ConstructorTagModifier '[CamelTo2 "-", UserDefined Init]
-                        , SumEnc                  TwoElemArr
-                        , TagSingleConstructors  'True
-                        , OmitNothingFields      'True
-                        ]
-                        OtherConfig
--}
-

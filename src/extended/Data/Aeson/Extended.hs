@@ -87,13 +87,17 @@ commonPrefixOn _ xs ys = ([], xs, ys)
 -- | Convert @CamelCase@ to @lowerCamelCase@.
 --
 -- >>> toLowerCamelCase "Call"
--- "call"
+-- WAS "call"
+-- NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
 -- >>> toLowerCamelCase "CampaignId"
--- "campaignId"
+-- WAS "campaignId"
+-- NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
 -- >>> toLowerCamelCase "SMSId"
--- "smsId"
+-- WAS "smsId"
+-- NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
 -- >>> toLowerCamelCase "progress75"
--- "progress75"
+-- WAS "progress75"
+-- NOW <command line>: /nix/store/jsp3h3wpzc842j0rz61m5ly71ak6qgdn-glibc-2.32-54/lib/libc.so.6: symbol _dl_fatal_printf version GLIBC_PRIVATE not defined in file ld-linux-x86-64.so.2 with link time reference
 toLowerCamelCase :: String -> String
 toLowerCamelCase = concat . lowerFirstWord . splitCamelWords
   where lowerFirstWord [] = []

@@ -13,21 +13,28 @@ import Data.Foldable
 
 run :: FilePath -> KatipLoggerIO -> HasqlPool.Settings -> IO ()
 run path logger settings = do
-  cmds <- Hasql.loadMigrationsFromDirectory path
-  logger DebugS $ ls $ show cmds
+  cmds <- (Hasql.MigrationInitialization :) <$>
+    Hasql.loadMigrationsFromDirectory path
   let goMigrationV2 = W.runWriterT $ do
-        migr_result <- for (Hasql.MigrationInitialization : cmds) $
-          W.lift . Hasql.runMigration
-        for_ migr_result $ W.tell . ls . show
         schemas <- W.lift Hasql.getMigrations
         W.tell $ foldMap (ls . show) schemas
+        -- validation
+        validation <- fmap sequence $
+          for (tail cmds) $
+            W.lift .
+            Hasql.runMigration .
+            Hasql.MigrationValidation
+        for_ validation $ \es -> error $ show es
+
+        migr_result <- fmap sequence $ for cmds $
+          W.lift . Hasql.runMigration
+        for_ migr_result $ \es -> error $ show es
   let go pool = do
         result_e <- HasqlPool.use pool $
           Hasql.transaction
            Hasql.ReadCommitted
            Hasql.Write $
           goMigrationV2
-        case result_e of
-          Right (_, ws) -> logger DebugS ws
-          Left e -> do logger ErrorS $ ls (show e); error $ show e
+        for_ result_e $ \(_, ws) ->
+          logger DebugS $ ls (show cmds) <> ws
   bracket (HasqlPool.acquire settings) go HasqlPool.release

@@ -9,6 +9,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE LambdaCase #-}
 
 module App (main) where
 
@@ -44,11 +46,32 @@ import qualified Network.Minio as Minio
 import Data.String
 import System.IO
 import qualified Web.Telegram
-import Logo
 import Data.Time.Clock.System
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Data.Foldable (for_)
+import Data.Char (toLower, isUpper)
+import qualified Text.Read.Lex as L
+import GHC.Read
+import Text.ParserCombinators.ReadPrec (pfail)
+
+data PrintCfg = Y | N deriving stock (Generic)
+
+instance Show PrintCfg where
+  show Y = "y"
+  show N = "n"
+
+instance Read PrintCfg where
+  readPrec =
+    parens
+    (do L.Ident s <- lexP
+        case s of
+          "y" -> return Y
+          "n" -> return N
+          _   -> pfail)
+
+instance ParseField PrintCfg
 
 data Cmd w =
      Cmd
@@ -64,10 +87,39 @@ data Cmd w =
      , serverPort :: w ::: Maybe Int <?> "server port"
      , cfgAdminStoragePath :: w ::: FilePath <?> "admin storage"
      , migration :: w ::: FilePath <?> "migration path"
+     , printCfg :: w ::: Maybe PrintCfg  <?> "whether config be printed"
      } deriving stock Generic
 
-instance ParseRecord (Cmd Wrapped)
 deriving instance Show (Cmd Unwrapped)
+
+instance ParseRecord (Cmd Wrapped) where
+  parseRecord =
+    parseRecordWithModifiers
+    defaultModifiers {
+      fieldNameModifier = toSnake }
+
+{-|
+   Convert CamelCased or mixedCases 'String' to a 'String' with underscores,
+   the \"snake\" 'String'.
+   It splits an input value to chunks by 'isUpper' predicate,
+   then adds underscores to each element except the first.
+   Finally concats the result and convers it downcase.
+-}
+toSnake :: String -> String
+toSnake = map toLower . concat . underscores . splitR isUpper
+  where
+    underscores [] = []
+    underscores (h:t) = h : map ('_':) t
+    splitR _ [] = []
+    splitR p s =
+      let go m s' =
+            case break p s' of
+              (b', [])     -> [ m:b' ]
+              (b', x:xs) -> ( m:b' ) : go x xs
+      in case break p s of
+        (b,  [])    -> [ b ]
+        ([], h:t) -> go h t
+        (b,  h:t) -> b : go h t
 
 main :: IO ()
 main = do
@@ -83,8 +135,7 @@ main = do
         & swagger.host %~ (`fromMaybe` swaggerHost)
         & swagger.port %~ (`fromMaybe` swaggerPort)
         & serverConnection.port %~ (`fromMaybe` serverPort)
-  pPrint cfg
-  haskellSay "Welcome to Scaffolding!!!"
+  for_ printCfg $ \case Y -> pPrint cfg; N -> pure ()
 
   term <- hGetTerm stdout
   hSetBuffering stdout NoBuffering
@@ -137,7 +188,7 @@ main = do
         (cfg^.serverError)
         admin_storage
   let runApp le =
-        runKatipContextT le (mempty :: LogContexts) mempty $ do
+        runKatipContextT le (mempty @LogContexts) mempty $ do
           logger <- katipAddNamespace (Namespace ["db", "migration"]) askLoggerIO
           liftIO $ Migration.run migration logger (50, 1, mkRawConn (cfg^.db))
           App.run appCfg
