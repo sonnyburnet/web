@@ -18,7 +18,8 @@ services:
       - pg_db:/var/lib/postgresql/data
     networks:
       edgeNode:
-        ipv4_address: 192.168.20.4
+         ipv4_address: 192.168.20.4
+
 
   server:
     image: server:latest
@@ -53,7 +54,7 @@ services:
         ipv4_address: 192.168.20.2
 
   pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:latest
     container_name: "scaffold-pgadmin"
     restart: 'always'
     ports:
@@ -63,8 +64,19 @@ services:
       PGADMIN_DEFAULT_PASSWORD: SuperSecret
       PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 10
     networks:
-      edgeNode:
-        ipv4_address: 192.168.20.6
+      - edgeNode
+
+  migration:
+    image: liquibase/liquibase:latest
+    container_name: "scaffold-migration"
+    restart: 'always'
+    volumes:
+      - ${PWD}/migration/:/liquibase/changelog
+      - ${PWD}/migration/liquibase_policy_init.sh:/liquibase/liquibase_policy_init.sh
+    command: ['./liquibase_policy_init.sh' ]
+    networks:
+      - edgeNode
+
 
 volumes:
   pg_db: {}

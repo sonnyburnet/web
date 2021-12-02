@@ -5,6 +5,7 @@
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 module TH.Mk
        ( mkToSchemaAndJSON
@@ -129,40 +130,38 @@ mkParamSchemaEnum name iso = do
    |]
 
 loadMigrationList :: IO [(Integer, String)]
-loadMigrationList =
-  do
-    dir <- getCurrentDirectory
-    let migDir = dir </> "migration"
-    let mkTpl file =
-         fmap
-         (, migDir </> file)
-         (Data.List.stripPrefix
-          "version"
-          (dropExtension file))
-    fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
-    fmap (sortOn (^._1)) $ forM fs $ \x -> do
-      hdl <- openFile (x^._2) ReadMode
-      content <- IOS.hGetContents hdl
-      hClose hdl
-      return (read (x^._1) :: Integer, content)
+loadMigrationList = do
+  dir <- getCurrentDirectory
+  let migDir = dir </> "migration/index"
+  let mkTpl file =
+        fmap
+        (, migDir </> file)
+        (Data.List.stripPrefix
+        "version"
+        (dropExtension file))
+  fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
+  fmap (sortOn (^._1)) $ forM fs $ \x -> do
+    hdl <- openFile (x^._2) ReadMode
+    content <- IOS.hGetContents hdl
+    hClose hdl
+    return (read @Integer (x^._1), content)
 
 loadMigrationListTest :: IO [String]
-loadMigrationListTest =
-  do
-    dir <- getCurrentDirectory
-    let migDir = dir </> "migration"
-    let mkTpl file =
-          fmap
-          (, migDir </> file)
-          (Data.List.stripPrefix
-          "version"
-          (dropExtension file))
-    fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
-    fmap (map snd . sortOn (^._1)) $ forM fs $ \x -> do
-      hdl <- openFile (x^._2) ReadMode
-      content <- IOS.hGetContents hdl
-      hClose hdl
-      return (read (x^._1) :: Integer, content)
+loadMigrationListTest = do
+  dir <- getCurrentDirectory
+  let migDir = dir </> "migration/index"
+  let mkTpl file =
+        fmap
+        (, migDir </> file)
+        (Data.List.stripPrefix
+        "version"
+        (dropExtension file))
+  fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
+  fmap (map snd . sortOn (^._1)) $ forM fs $ \x -> do
+    hdl <- openFile (x^._2) ReadMode
+    content <- IOS.hGetContents hdl
+    hClose hdl
+    return (read @Integer (x^._1), content)
 
 mkMigrationSeq :: Q [Dec]
 mkMigrationSeq = do
