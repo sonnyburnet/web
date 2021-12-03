@@ -23,24 +23,24 @@ mkService :: HTTP.Manager -> Telegram -> IO Service
 mkService mgr Telegram {..} = do
   let url = telegramHost <> telegramBot <> "/sendMessage"
   req <- HTTP.parseRequest $ T.unpack url
-  let send logger msg = catch @IO @HTTP.HttpException (
-        when (telegramEnv == Dev) $ do
-          for_ (splitByteString (toS msg)) $ \chunk -> do
-            void $ logger DebugS (ls ("telegram req: " <> chunk))
-            response <- flip HTTP.httpLbs mgr $
-              HTTP.urlEncodedBody
-              [ ("chat_id", toS ("@" <> telegramChat))
-              , ("text", "`" <> toS chunk <> "`")
-              , ("parse_mode", "markdown")
-              ] req { HTTP.method = "POST" }
-            let response_status = HTTP.statusCode $ HTTP.responseStatus response
-            let response_body = toS $ HTTP.responseBody response
-            let log_msg =
-                  "telegram response with status " <>
-                  show response_status <> ": " <> response_body
-            void $ logger DebugS (ls ("telegram resp: " <> log_msg))) $
-          \e -> void $ logger ErrorS $ ls (show e)
-  return Service {..}
+  return $ Service $ \logger msg ->
+    catch @IO @HTTP.HttpException (
+      when (telegramEnv == Dev) $ do
+        for_ (splitByteString (toS msg)) $ \chunk -> do
+        void $ logger DebugS (ls ("telegram req: " <> chunk))
+        response <- flip HTTP.httpLbs mgr $
+          HTTP.urlEncodedBody
+          [ ("chat_id", toS ("@" <> telegramChat))
+          , ("text", "`" <> toS chunk <> "`")
+          , ("parse_mode", "markdown")
+          ] req { HTTP.method = "POST" }
+        let response_status = HTTP.statusCode $ HTTP.responseStatus response
+        let response_body = toS $ HTTP.responseBody response
+        let log_msg =
+              "telegram response with status " <>
+              show response_status <> ": " <> response_body
+        void $ logger DebugS (ls ("telegram resp: " <> log_msg))) $
+      \e -> void $ logger ErrorS $ ls (show e)
 
 splitByteString :: BL.ByteString -> [BL.ByteString]
 splitByteString = reverse . split []

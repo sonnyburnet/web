@@ -21,7 +21,6 @@ import Scaffold.Auth (User (User))
 import KatipController
 import BuildInfo (gitCommit)
 import Pretty
-import qualified Database.Migration as Migration
 import Control.Lens hiding (Wrapped, Unwrapped)
 import Data.Monoid.Colorful (hGetTerm)
 import Katip
@@ -39,7 +38,6 @@ import Network.HTTP.Client
 import Options.Generic
 import Data.Maybe
 import System.FilePath.Posix
-import Control.Monad.IO.Class
 import qualified Data.Pool as Pool
 import Control.Exception
 import qualified Network.Minio as Minio
@@ -173,11 +171,11 @@ main = do
 
   admin_storage <- withFile cfgAdminStoragePath ReadMode $ \h -> do
     content <- T.hGetContents h
-    let xs = flip foldMap (T.splitOn "," content) $ \x ->
-              case T.splitOn ":" x of
-                [pass, email] -> [(pass, User email)]
-                _ -> []
-    return $ Map.fromList xs
+    return $ Map.fromList $
+      flip foldMap (T.splitOn "," content) $ \x ->
+        case T.splitOn ":" x of
+          [pass, email] -> [(pass, User email)]
+          _ -> []
 
   let appCfg =
         App.Cfg
@@ -187,11 +185,6 @@ main = do
         (cfg^.cors)
         (cfg^.serverError)
         admin_storage
-  let runApp le =
-        runKatipContextT le (mempty @LogContexts) mempty $ do
-          logger <- katipAddNamespace (Namespace ["db", "migration"]) askLoggerIO
-          liftIO $ Migration.run migration logger (50, 1, mkRawConn (cfg^.db))
-          App.run appCfg
   manager <- Http.newTlsManagerWith Http.tlsManagerSettings
     { managerConnCount = 1
     , managerResponseTimeout =
@@ -209,7 +202,8 @@ main = do
   let katipMinio = Minio minioEnv (cfg^.Scaffold.Config.minio.Scaffold.Config.bucketPrefix)
   let katipEnv = KatipEnv term hasqlpool manager (cfg^.service.coerced) katipMinio telegram
 
-  bracket env closeScribes (void . (\x -> evalRWST (App.runAppMonad x) katipEnv def) . runApp)
+  let runApp le = runKatipContextT le (mempty @LogContexts) mempty $ App.run appCfg
+  bracket env closeScribes $ void . (\x -> evalRWST (App.runAppMonad x) katipEnv def) . runApp
 
 mkRawConn :: Db -> HasqlConn.Settings
 mkRawConn x = HasqlConn.settings (x^.host.stext.textbs) (x^.port.to fromIntegral) (x^.Scaffold.Config.user.stext.textbs) (x^.pass.stext.textbs) (x^.database.stext.textbs)

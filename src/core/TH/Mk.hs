@@ -13,7 +13,6 @@ module TH.Mk
        , mkEnumConvertor
        , mkFromHttpApiDataEnum
        , mkParamSchemaEnum
-       , mkMigrationSeq
        , mkMigrationTest
        , mkEncoder
        , mkArbitrary
@@ -129,23 +128,6 @@ mkParamSchemaEnum name iso = do
          SwaggerString & enum_ ?~ (new_xs <&> \x -> view $iso (coerce x))
    |]
 
-loadMigrationList :: IO [(Integer, String)]
-loadMigrationList = do
-  dir <- getCurrentDirectory
-  let migDir = dir </> "migration/index"
-  let mkTpl file =
-        fmap
-        (, migDir </> file)
-        (Data.List.stripPrefix
-        "version"
-        (dropExtension file))
-  fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
-  fmap (sortOn (^._1)) $ forM fs $ \x -> do
-    hdl <- openFile (x^._2) ReadMode
-    content <- IOS.hGetContents hdl
-    hClose hdl
-    return (read @Integer (x^._1), content)
-
 loadMigrationListTest :: IO [String]
 loadMigrationListTest = do
   dir <- getCurrentDirectory
@@ -158,29 +140,8 @@ loadMigrationListTest = do
         (dropExtension file))
   fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
   fmap (map snd . sortOn (^._1)) $ forM fs $ \x -> do
-    hdl <- openFile (x^._2) ReadMode
-    content <- IOS.hGetContents hdl
-    hClose hdl
+    content <- withFile (x^._2) ReadMode IOS.hGetContents
     return (read @Integer (x^._1), content)
-
-mkMigrationSeq :: Q [Dec]
-mkMigrationSeq = do
-  migrations <- liftIO loadMigrationList
-  let version = mkName "Version"
-  let lastIdx = fst (last migrations)
-  let step = mkName "MigrationStep"
-  let list = mkName "list"
-  let next = mkName "NextSql"
-  let stop = mkName "Stop"
-  let mkVersion xs [] = xs ++ [TupE [Just (AppE (ConE version) (LitE (IntegerL lastIdx))), Just (ConE stop)]]
-      mkVersion xs ((i, str):is) =
-          TupE [Just (AppE (ConE version) (LitE (IntegerL (i - 1))))
-               , Just (AppE (AppE (ConE next)
-                 (LitE (StringL str)))
-                 (AppE (ConE version) (LitE (IntegerL i))))]
-          : mkVersion xs is
-  let xs = if null migrations then [] else mkVersion [] migrations
-  return [ValD (VarP list) (NormalB (ListE xs)) []]
 
 mkMigrationTest :: Q [Dec]
 mkMigrationTest = do
