@@ -71,9 +71,9 @@ import qualified Data.Text as T
 import qualified Hasql.Connection as Hasql
 import Web.Telegram
 import Pretty
-import Data.String.Conv
-import Control.Concurrent.Lifted
 import Language.Haskell.TH.Syntax
+import Control.Concurrent.STM.TChan
+import Control.Concurrent.STM
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 type KatipLoggerLocIO = Maybe Loc -> Severity -> LogStr -> IO ()
@@ -114,7 +114,7 @@ data Config =
 instance MonadTime Handler where
   currentTime = liftIO getCurrentTime
 
-newtype KatipControllerState = KatipControllerState Int
+data KatipControllerState = KatipControllerState Int (TChan TelegramMsg)
 
 newtype KatipControllerWriter = KatipControllerWriter [String]
   deriving newtype Monoid
@@ -164,7 +164,5 @@ runKatipController cfg st app = fmap fst (RWS.evalRWST (unwrap app) cfg st)
 
 runTelegram :: Show a => String -> a -> KatipController ()
 runTelegram location request = do
-  telegram_service <- asks (^.katipEnv.telegram)
-  logger <- askLoggerIO
-  void $ fork $ liftIO $ send telegram_service logger $ toS $
-    mkPretty ("At module " <> location) ("message: " <> show request)
+  KatipControllerState _ ch <- get
+  liftIO $ atomically $ ch `writeTChan` TelegramMsg (mkPretty "At module " location) request

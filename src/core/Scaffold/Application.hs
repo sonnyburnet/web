@@ -71,6 +71,8 @@ import Crypto.JOSE.JWK
 import Scaffold.Auth (checkBasicAuth, User)
 import qualified Data.Map as M
 import Language.Haskell.TH.Syntax (Loc)
+import Control.Monad.STM
+import Control.Concurrent.STM.TChan
 
 data Cfg =
      Cfg
@@ -103,9 +105,9 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   logger <- katipAddNamespace (Namespace ["application"]) askLoggerIO
 
   version_e <- liftIO getVersion
-  runTelegram logger $ "server version " <> show version_e
   whenLeft version_e $ \e -> throwM $ ErrorCall e
   let Right ver = version_e
+  runTelegram logger $ "server version " <> show ver
 
   runTelegram logger $ "server run on port " <> show cfgServerPort
 
@@ -119,11 +121,14 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   cfg <- initCfg
   let withSwagger :: Proxy a -> Proxy (a :<|> SwaggerSchemaUI "swagger" "swagger.json")
       withSwagger _ = Proxy
+
+  (write_ch, read_ch) <- liftIO $ atomically $ do write_ch <- newTChan; read_ch <- dupTChan write_ch; return (write_ch, read_ch)
+
   let server =
         hoistServerWithContext
         (withSwagger api)
         (Proxy @'[JWTSettings, CookieSettings, BasicAuthData -> IO (AuthResult User)])
-        (runKatipController cfg (KatipControllerState 0))
+        (runKatipController cfg (KatipControllerState 0 write_ch))
         (toServant Controller.controller :<|>
          swaggerSchemaUIServerT
          (swaggerHttpApi cfgHost cfgSwaggerPort ver))
@@ -151,9 +156,11 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   path <- liftIO getCurrentDirectory
   let tls_settings = (Warp.tlsSettings (path </> "tls/certificate") (path </> "tls/key")) { Warp.onInsecure = Warp.AllowInsecure }
 
-  servAsync <- liftIO $ async $ Warp.runTLS tls_settings settings (middleware cfgCors mware_logger runServer)
+  serverAsync <- liftIO $ async $ Warp.runTLS tls_settings settings (middleware cfgCors mware_logger runServer)
   mail_logger <- katipAddNamespace (Namespace ["mail"]) askLoggerIO
-  liftIO (void (waitAnyCancel [servAsync])) `logExceptionM` ErrorS
+  teleram_logger <- katipAddNamespace (Namespace ["telegram"]) askLoggerIO
+  telegramAsync <- liftIO $ async $ forever $ runMsgDeliver read_ch telegram_service teleram_logger
+  liftIO (void (waitAnyCancel [serverAsync, telegramAsync])) `logExceptionM` ErrorS
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors $ Middleware.logger log $ Middleware.showVault log app

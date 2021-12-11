@@ -26,6 +26,7 @@ import Servant.Server.Generic
 import Servant.API.Generic
 import Servant.Ip
 import Control.Monad.Time
+import BuildInfo
 
 controller :: ApplicationApi (AsServerT KatipController)
 controller = ApplicationApi { _applicationApiHttp = toServant . httpApi }
@@ -63,4 +64,8 @@ file =
      (File.Download.controller option fid w h) }
 
 admin :: User -> AdminApi (AsServerT KatipController)
-admin _ = AdminApi { _adminApiTest = Ok <$> currentTime }
+admin _ = AdminApi {
+  _adminApiTest = do
+    ct <- currentTime
+    runTelegram $location $ show ct
+    return $ Ok ct }

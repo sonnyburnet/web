@@ -33,12 +33,12 @@ import Servant.Swagger.RawM ()
 import Servant.Auth.Swagger ()
 import Servant.Ip
 
-data ApplicationApi route =
-     ApplicationApi
-     { _applicationApiHttp
-       :: route
-       :- ToServant HttpWrapperApi AsApi
-     } deriving stock Generic
+newtype ApplicationApi route =
+        ApplicationApi {
+         _applicationApiHttp
+         :: route
+         :- ToServant HttpWrapperApi AsApi
+       } deriving stock Generic
 
 newtype HttpWrapperApi route =
         HttpWrapperApi

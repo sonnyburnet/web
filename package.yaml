@@ -189,9 +189,7 @@ library:
     - cryptonite
     - servant-auth-server
     - servant-auth-swagger
-    - hasql-migration
-    - hasql-transaction
-    - hasql-pool
+    - stm
 
   source-dirs:
     - src/core

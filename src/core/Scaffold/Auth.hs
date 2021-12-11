@@ -1,10 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Scaffold.Auth (User (..), withBasicAuth, checkBasicAuth) where
 
 import qualified Data.Text as T
-import Servant (BasicAuthData(..), err401, throwError)
+import Servant (BasicAuthData(..))
 import Servant.Auth.Server (FromJWT (decodeJWT), FromBasicAuthData (..), BasicAuthCfg, AuthResult (..), ToJWT (..))
 import Scaffold.Transport.Response
 import KatipController (KatipController, KatipLoggerLocIO)
@@ -29,7 +31,7 @@ instance FromBasicAuthData User where
 
 withBasicAuth :: AuthResult User -> (User -> KatipController (Response a)) -> KatipController (Response a)
 withBasicAuth (Authenticated user) runApi = runApi user
-withBasicAuth _ _ = throwError err401
+withBasicAuth _ _ = return $ Error $ asError @T.Text "only for authorized personal"
 
 checkBasicAuth :: KatipLoggerLocIO ->  M.Map T.Text User -> BasicAuthData -> IO (AuthResult User)
 checkBasicAuth log storage auth_data = do
