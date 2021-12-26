@@ -28,15 +28,21 @@ import BuildInfo
 import qualified Data.Text as T
 import System.Timeout
 import Data.Foldable
+import System.Directory
+import System.FilePath
 
 controller :: T.Text -> Files -> KatipController (Response [Id "file"])
 controller bucket x = do
   runTelegram $location (bucket, x)
   $(logTM) DebugS (logStr (show (bucket, x)))
   Minio {..} <- fmap (^.katipEnv.minio) ask
-  es <- for (coerce x) $ \File {..} -> do
+  es <- for (coerce x) $ \file@File {..} -> do
     tm <- liftIO getCurrentTime
     let hash = mkHash (fileName <> fileMime <> (show tm^.stext))
+    tmp <- liftIO getTemporaryDirectory
+    let new_file_path = tmp </> T.unpack (mkHash file)
+    liftIO $ copyFile filePath new_file_path
+    runTelegram $location file { filePath = new_file_path }
     minioResult <- liftIO $ timeout (5 * 10 ^ 6) $ runMinioWith minioConn $ do
       let newBucket = minioBucketPrefix <> "." <> bucket
       exist <- bucketExists newBucket

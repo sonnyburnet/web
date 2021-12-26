@@ -190,6 +190,9 @@ library:
     - servant-auth-server
     - servant-auth-swagger
     - stm
+    - SafeSemaphore
+    - threads
+    - http-api-data
 
   source-dirs:
     - src/core

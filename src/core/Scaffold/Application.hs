@@ -101,7 +101,7 @@ newtype AppMonad a = AppMonad { runAppMonad :: RWS.RWST KatipEnv KatipLogger Kat
 run :: Cfg -> KatipContextT AppMonad ()
 run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   telegram_service <- fmap (^.telegram) ask
-  let runTelegram l msg = void $ fork $ liftIO $ send telegram_service l (mkPretty ("At module " <> $location) msg^.stext)
+  let runTelegram l msg = void $ fork $ liftIO $ sendMsg telegram_service l (mkPretty ("At module " <> $location) msg^.stext)
   logger <- katipAddNamespace (Namespace ["application"]) askLoggerIO
 
   version_e <- liftIO getVersion
@@ -166,14 +166,15 @@ middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors $ Middleware.logger log $ Middleware.showVault log app
 
 logUncaughtException :: KatipLoggerIO -> (KatipLoggerIO -> String -> IO ()) -> Maybe Request -> SomeException -> IO ()
-logUncaughtException log runTelegram req e = when (Warp.defaultShouldDisplayException e) $ maybe without within req
-  where without = do
-          runTelegram log $ "before request being handled" <> show e
-          log ErrorS (logStr ("before request being handled" <> show e))
-        within r = do
-          runTelegram log $ "\"" <> toS (requestMethod r) <> " " <> toS (rawPathInfo r) <> " " <> toS (show (httpVersion r)) <> "500 - " <> show e
-          log ErrorS (logStr ("\"" <> toS (requestMethod r) <> " " <> toS (rawPathInfo r) <> " " <> toS (show (httpVersion r)) <> "500 - " <> show e))
-
+logUncaughtException log runTelegram req e =
+  when (Warp.defaultShouldDisplayException e) $
+  maybe
+  (do runTelegram log $ "before request being handled" <> show e
+      log ErrorS (logStr ("before request being handled" <> show e)))
+  (\r -> do
+    runTelegram log $ "\"" <> toS (requestMethod r) <> " " <> toS (rawPathInfo r) <> " " <> toS (show (httpVersion r)) <> "500 - " <> show e
+    log ErrorS (logStr ("\"" <> toS (requestMethod r) <> " " <> toS (rawPathInfo r) <> " " <> toS (show (httpVersion r)) <> "500 - " <> show e)))
+  req
 mk500Response :: SomeException -> Bool -> Response
 mk500Response error = bool
   (responseLBS status200
@@ -194,9 +195,12 @@ mkCors :: Cfg.Cors -> Middleware
 mkCors cfg_cors =
   cors $ const $ pure $
     simpleCorsResourcePolicy
-    & field @"corsOrigins" .~ fmap ((, True) . map toS) (Cfg.corsOrigins cfg_cors)
-    & field @"corsRequestHeaders" .~ [hAuthorization, hContentType, hOrigin, hAccessControlAllowOrigin]
-    & field @"corsMethods" .~ simpleMethods <> [methodPut, methodPatch, methodDelete, methodOptions]
+    & field @"corsOrigins" .~
+      fmap ((, True) . map toS) (Cfg.corsOrigins cfg_cors)
+    & field @"corsRequestHeaders" .~
+      [hAuthorization, hContentType, hOrigin]
+    & field @"corsMethods" .~ simpleMethods <>
+      [methodPut, methodPatch, methodDelete, methodOptions]
 
 askLoggerWithLocIO :: KatipContextT AppMonad (Maybe Loc -> Severity -> LogStr -> IO ())
 askLoggerWithLocIO = do

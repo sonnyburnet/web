@@ -14,7 +14,6 @@ import Scaffold.Transport.Model.File
 
 import KatipController
 import Data.Aeson.Unit
-import Servant.Multipart.File
 import Control.Lens
 import Database.Transaction
 import Katip

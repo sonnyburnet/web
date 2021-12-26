@@ -26,7 +26,7 @@ data File =
      { fileName :: !T.Text
      , fileMime :: !T.Text
      , filePath :: !FilePath
-     } deriving Show
+     } deriving (Show, Typeable)
 
 instance FromMultipart Tmp Files where
   fromMultipart x =

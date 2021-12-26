@@ -20,6 +20,7 @@ module Scaffold.Api
        ) where
 
 import Scaffold.Api.Api
+import Scaffold.Transport.Version
 
 import BuildInfo
 import Servant.API
@@ -46,7 +47,7 @@ newtype HttpWrapperApi route =
           :: route
           :- Description "http api: "
           :> "api"
-          :> "v1"
+          :> Capture "version" APIVersion
           :> HeaderIP
           :> ToServant HttpApi AsApi
         } deriving stock Generic

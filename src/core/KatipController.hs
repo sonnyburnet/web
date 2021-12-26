@@ -74,6 +74,7 @@ import Pretty
 import Language.Haskell.TH.Syntax
 import Control.Concurrent.STM.TChan
 import Control.Concurrent.STM
+import Data.Typeable
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 type KatipLoggerLocIO = Maybe Loc -> Severity -> LogStr -> IO ()
@@ -162,7 +163,7 @@ instance KatipContext KatipController where
 runKatipController :: Config -> KatipControllerState -> KatipController a -> Handler a
 runKatipController cfg st app = fmap fst (RWS.evalRWST (unwrap app) cfg st)
 
-runTelegram :: Show a => String -> a -> KatipController ()
-runTelegram location request = do
+runTelegram :: Typeable a => String -> a -> KatipController ()
+runTelegram location msg = do
   KatipControllerState _ ch <- get
-  liftIO $ atomically $ ch `writeTChan` TelegramMsg (mkPretty "At module " location) request
+  liftIO $ atomically $ ch `writeTChan` TelegramMsg (mkPretty "At module " location) msg

@@ -27,9 +27,10 @@ import Servant.API.Generic
 import Servant.Ip
 import Control.Monad.Time
 import BuildInfo
+import Data.Functor
 
 controller :: ApplicationApi (AsServerT KatipController)
-controller = ApplicationApi { _applicationApiHttp = toServant . httpApi }
+controller = ApplicationApi { _applicationApiHttp = \_ ip -> toServant $ httpApi ip  }
 
 httpApi :: Maybe IP4 -> HttpApi (AsServerT KatipController)
 httpApi _ =
@@ -67,5 +68,5 @@ admin :: User -> AdminApi (AsServerT KatipController)
 admin _ = AdminApi {
   _adminApiTest = do
     ct <- currentTime
-    runTelegram $location $ show ct
-    return $ Ok ct }
+    runTelegram $location $ show [1, 2]
+    runTelegram $location (show ct) $> Ok ct }
